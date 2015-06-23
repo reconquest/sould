@@ -60,6 +60,13 @@ func (server *MirrorServer) HandlePOST(
 	var (
 		mirrorName   = request.FormValue("name")
 		mirrorOrigin = request.FormValue("origin")
+
+		hadCreateMirror     bool
+		pullFailed          bool
+		forwardingFailed    bool
+		forwardingFailedAll bool
+
+		responseMessages []string
 	)
 
 	for paramName, paramValue := range map[string]string{
@@ -74,8 +81,7 @@ func (server *MirrorServer) HandlePOST(
 			log.Printf("%s, request = '%#v'", err.Error(), request.Form)
 
 			writeResponseError(
-				response, http.StatusBadRequest,
-				err.Error(),
+				response, http.StatusBadRequest, err.Error(),
 			)
 
 			return
@@ -87,8 +93,18 @@ func (server *MirrorServer) HandlePOST(
 		mirrorName, mirrorOrigin,
 	)
 
-	mirror, created, err := server.GetMirror(mirrorName, mirrorOrigin)
+	if !server.unsecure && !isURL(mirrorOrigin) {
+		err = fmt.Errorf("mirror origin should be URL")
 
+		log.Println(err)
+		writeResponseError(
+			response, http.StatusForbidden, err.Error(),
+		)
+
+		return
+	}
+
+	mirror, hadCreateMirror, err := server.GetMirror(mirrorName, mirrorOrigin)
 	if err != nil {
 		log.Println(err)
 		writeResponseError(
@@ -98,48 +114,33 @@ func (server *MirrorServer) HandlePOST(
 		return
 	}
 
-	if created {
+	if hadCreateMirror {
 		log.Printf(
 			"mirror '%s' successfully created",
 			mirrorName,
 		)
 	}
 
-	var (
-		responseMessages []string
-		httpStatus       int
-		pullFailed       bool
-	)
-
 	err = mirror.Pull()
 	if err != nil {
-		server.stateTable.SetState(mirrorName, MirrorStateFailed)
-
-		httpStatus = http.StatusInternalServerError
 		pullFailed = true
 
 		err = fmt.Errorf(
 			"can't update mirror '%s': %s",
 			mirrorName, err.Error(),
 		)
-
 		log.Println(err)
+		responseMessages = append(responseMessages, err.Error())
 
-		// an error occurred during mirror pull, master sould should be
-		// tolerant and try to forward request to slaves
-		if server.IsMaster() {
-			responseMessages = append(responseMessages, err.Error())
-		} else {
-			writeResponseError(response, httpStatus, err.Error())
-
-			return
-		}
+		server.stateTable.SetState(mirrorName, MirrorStateFailed)
 	} else {
-		server.stateTable.SetState(mirrorName, MirrorStateSuccess)
-		httpStatus = http.StatusOK
-
 		log.Printf("mirror '%s' successfully updated", mirrorName)
+
+		server.stateTable.SetState(mirrorName, MirrorStateSuccess)
 	}
+
+	// if an error occurred during mirror pull, master sould should be
+	// tolerant and try to forward request to slaves
 
 	if server.IsMaster() {
 		slaves := server.GetSlaves()
@@ -157,7 +158,7 @@ func (server *MirrorServer) HandlePOST(
 			}
 
 			if len(errors) > 0 {
-				httpStatus = http.StatusBadGateway
+				forwardingFailed = true
 
 				for _, err := range errors {
 					log.Println(err)
@@ -165,16 +166,37 @@ func (server *MirrorServer) HandlePOST(
 					responseMessages = append(responseMessages, err.Error())
 				}
 
-				if len(fedSlaves) == 0 && pullFailed {
-					log.Printf("sould cluster completely corrupted")
-					httpStatus = http.StatusServiceUnavailable
+				if len(fedSlaves) == 0 {
+					forwardingFailedAll = true
 				}
 			}
 		}
+	}
 
+	var httpStatus int
+	switch {
+	case forwardingFailedAll && pullFailed:
+		log.Printf("sould cluster completely corrupted")
+		httpStatus = http.StatusServiceUnavailable
+
+	case forwardingFailed:
+		httpStatus = http.StatusBadGateway
+
+	case pullFailed:
+		httpStatus = http.StatusInternalServerError
+
+	case hadCreateMirror:
+		httpStatus = http.StatusCreated
+
+	default:
+		httpStatus = http.StatusOK
+	}
+
+	if len(responseMessages) == 0 {
+		response.WriteHeader(httpStatus)
+	} else {
 		writeResponseError(
-			response, httpStatus,
-			strings.Join(responseMessages, "\n\n"),
+			response, httpStatus, strings.Join(responseMessages, "\n\n"),
 		)
 	}
 }
@@ -277,13 +299,13 @@ func (server MirrorServer) HandleGET(
 // if had to create mirror, then 'created bool' returning variable will be true.
 func (server MirrorServer) GetMirror(
 	name string, origin string,
-) (mirror Mirror, created bool, err error) {
+) (mirror Mirror, hadCreate bool, err error) {
 	mirror, err = GetMirror(
 		server.GetStorageDir(), name,
 	)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return mirror, created, fmt.Errorf(
+			return mirror, false, fmt.Errorf(
 				"can't get mirror '%s': %s",
 				name, err.Error(),
 			)
@@ -293,7 +315,7 @@ func (server MirrorServer) GetMirror(
 			server.GetStorageDir(), name, origin,
 		)
 		if err != nil {
-			return mirror, created, fmt.Errorf(
+			return mirror, true, fmt.Errorf(
 				"can't create mirror '%s': %s",
 				name, err.Error(),
 			)
@@ -334,4 +356,20 @@ func writeResponseError(
 	}
 
 	response.Write(encodedMessage)
+}
+
+func isURL(origin string) bool {
+	prefixes := []string{
+		"ssh://",
+		"https://",
+		"http://",
+	}
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(prefix, origin) {
+			return true
+		}
+	}
+
+	return false
 }

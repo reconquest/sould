@@ -1,11 +1,72 @@
 #!/bin/bash
 
-start_sould() {
-    local stdout=$(mktemp)
-    local TMPDIR=$(tests_tmpdir)
+get_listen_addr() {
+    local number=$1
 
-    tests_background "$SOULD_BIN -l $SOULD_LISTEN -d $TMPDIR"
+    echo "localhost:"$((60000+$number))
+}
+
+get_storage() {
+    local number="$1"
+
+    local directory="$(tests_tmpdir)/storage/$number"
+
+    tests_do mkdir -p $directory
+    tests_assert_success
+
+    echo $directory
+}
+
+get_config_slave() {
+    local listen="$1"
+    local storage="$2"
+
+    local path="$storage/.config"
+
+    local config="
+listen = \"$listen\"
+storage = \"$storage\"
+"
+
+    echo "$config" > "$path"
+    echo "$path"
+}
+
+get_config_master() {
+    local listen="$1"
+    local storage="$2"
+    local timeout="$3"
+    shift 3
+
+    local slaves='"'${@// /'", "'}'"'
+
+    local path="$(get_config_slave $listen $storage)"
+
+    local config=<<EOF
+master = true
+timeout = $timeout
+slaves = [$slaves]
+EOF
+
+    #echo "$config" >> "$path"
+    echo "$path"
+}
+
+run_sould() {
+    local config="$1"
+
+    local unsecure=""
+    if $2; then
+        unsecure="--unsecure"
+    fi
+
+    local listen="$(cat $config | awk '/listen/{print $3}' | sed 's/"//g')"
+
+    tests_debug "running sould server on $listen"
+
+    tests_background "$SOULD_BIN -c $config $unsecure"
     local bg_pid=$(tests_background_pid)
+
 
     # 10 seconds
     local check_max=100
@@ -19,7 +80,7 @@ start_sould() {
             return 1
         fi
 
-        grep -q "$SOULD_LISTEN" <<< "$(netstat -tl)"
+        grep -q "$listen" <<< "$(netstat -tl)"
         local grep_result=$?
         if [ $grep_result -eq 0 ]; then
             return 0
@@ -27,23 +88,28 @@ start_sould() {
 
         check_counter=$(($check_counter+1))
         if [ $check_counter -ge $check_max ]; then
-            tests_debug "sould not started listening on $SOULD_LISTEN"
+            tests_debug "sould not started listening on $listen"
             return 1
         fi
     done
 }
 
-# create() function creates new repository with specified name
-create() {
-    local name=$1
+request_pull() {
+    local number="$1"
+    local name="$2"
+    local origin="$3"
+
     curl -s -v -X POST \
-        --data "name=$name" \
-        $SOULD_LISTEN 2>&1
+        --data "name=$name&origin=$origin" \
+        "$(get_listen_addr $number)" 2>&1
 }
 
 # update() function updates repository with specified name and uploads files
-update() {
-    local name=$1
+# Args:
+# $1 - mirror name
+# $@ - files
+request_update() {
+    local name="$1"
     shift
 
     local files=""

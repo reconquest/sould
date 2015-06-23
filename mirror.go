@@ -110,12 +110,17 @@ func (mirror Mirror) GetOrigin() (string, error) {
 	output, err := mirror.execute(
 		exec.Command("git", "config", "--get", "remote.origin.url"),
 	)
+	if err != nil {
+		return "", err
+	}
 
-	return string(output), err
+	origin := strings.TrimRight(string(output), " \n")
+
+	return origin, nil
 }
 
 func (mirror Mirror) GetModDate() (time.Time, error) {
-	var dirs = []string{
+	dirs := []string{
 		"refs/heads",
 		"refs/tags",
 	}

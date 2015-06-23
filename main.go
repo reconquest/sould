@@ -16,11 +16,12 @@ const (
 	usage = `Sould 1.0
 
 Usage:
-	sould [-c <config>]
+	sould [-c <config>] [--unsecure]
 
 Options:
     -c <config>  Use specified file as config file.
                  [default: /etc/sould.conf]
+	--unsecure   Allow create mirrors of local repositories.
 `
 )
 
@@ -30,20 +31,31 @@ func main() {
 		log.Fatal(err)
 	}
 
-	configPath := args["-c"].(string)
+	var (
+		configPath = args["-c"].(string)
+		unsecure   = args["--unsecure"].(bool)
+	)
 
 	config, err := getConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server, err := NewMirrorServer(config, MirrorStateTable{})
+	if unsecure {
+		log.Printf(
+			"WARNING! Sould server running in unsecure mode. " +
+				"In this mode sould can clone local repositories.",
+		)
+	}
+
+	server, err := NewMirrorServer(config, MirrorStateTable{}, unsecure)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go waitHangupSignals(server, configPath)
+	//go waitHangupSignals(server, configPath)
 
+	log.Printf("server.GetListenAddress(): %#v", server.GetListenAddress())
 	err = server.ListenHTTP()
 	if err != nil {
 		log.Fatal(err)

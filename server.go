@@ -13,13 +13,15 @@ type MirrorServer struct {
 	stateTable MirrorStateTable
 	config     zhash.Hash
 	httpClient *http.Client
+	unsecure   bool
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table MirrorStateTable,
+	config zhash.Hash, table MirrorStateTable, unsecure bool,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
 		stateTable: table,
+		unsecure:   unsecure,
 	}
 
 	server.httpClient = &http.Client{
@@ -53,6 +55,11 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 				"slave servers directive is empty or not defined",
 			)
 		}
+
+		_, err = config.GetInt("timeout")
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = config.GetString("storage")
@@ -65,10 +72,7 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 		return err
 	}
 
-	_, err = config.GetInt("timeout")
-	if err != nil {
-		return err
-	}
+	server.config = config
 
 	return nil
 }
