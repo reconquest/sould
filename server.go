@@ -10,16 +10,16 @@ import (
 )
 
 type MirrorServer struct {
-	pullStateTable PullStateTable
-	config         zhash.Hash
-	httpClient     *http.Client
+	stateTable MirrorStateTable
+	config     zhash.Hash
+	httpClient *http.Client
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table PullStateTable,
+	config zhash.Hash, table MirrorStateTable,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
-		pullStateTable: table,
+		stateTable: table,
 	}
 
 	server.httpClient = &http.Client{

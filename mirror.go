@@ -1,12 +1,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type ExecutionError struct {
@@ -20,19 +20,17 @@ type Mirror struct {
 	Dir  string
 }
 
-var (
-	ErrMirrorNotFound      = errors.New("mirror not found")
-	ErrMirrorAlreadyExists = errors.New("mirror already exists")
-)
-
 func CreateMirror(
-	storageDir string, name string, cloneURL string,
+	storageDir string, name string, origin string,
 ) (Mirror, error) {
 	mirrorDir := filepath.Join(storageDir, name)
 
 	_, err := os.Stat(mirrorDir)
 	if err == nil {
-		return Mirror{}, ErrMirrorAlreadyExists
+		return Mirror{}, fmt.Errorf(
+			"directory '%s' already exists",
+			mirrorDir,
+		)
 	} else if !os.IsNotExist(err) {
 		return Mirror{}, err
 	}
@@ -47,7 +45,7 @@ func CreateMirror(
 		Dir:  mirrorDir,
 	}
 
-	err = mirror.Clone(cloneURL)
+	err = mirror.Clone(origin)
 	if err != nil {
 		return Mirror{}, err
 	}
@@ -56,16 +54,12 @@ func CreateMirror(
 }
 
 func GetMirror(
-	storageDir string, name string, cloneURL string,
+	storageDir string, name string,
 ) (Mirror, error) {
 	mirrorDir := filepath.Join(storageDir, name)
 
 	_, err := os.Stat(mirrorDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return Mirror{}, ErrMirrorNotFound
-		}
-
 		return Mirror{}, err
 	}
 
@@ -76,12 +70,14 @@ func GetMirror(
 
 	return mirror, nil
 }
-func (mirror Mirror) GetTarArchive() ([]byte, error) {
+
+func (mirror Mirror) GetArchive() ([]byte, error) {
 	return mirror.execute(exec.Command("git", "archive", "HEAD"))
 }
 
 func (mirror Mirror) Pull() error {
 	_, err := mirror.execute(exec.Command("git", "remote", "update"))
+
 	return err
 }
 
@@ -108,6 +104,41 @@ func (mirror Mirror) Clone(url string) error {
 	)
 
 	return err
+}
+
+func (mirror Mirror) GetOrigin() (string, error) {
+	output, err := mirror.execute(
+		exec.Command("git", "config", "--get", "remote.origin.url"),
+	)
+
+	return string(output), err
+}
+
+func (mirror Mirror) GetModDate() (time.Time, error) {
+	var dirs = []string{
+		"refs/heads",
+		"refs/tags",
+	}
+
+	var modDate time.Time
+
+	for _, dir := range dirs {
+		fileinfo, err := os.Stat(mirror.Dir + "/" + dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+
+			return modDate, err
+		}
+
+		newModDate := fileinfo.ModTime()
+		if newModDate.Second() > modDate.Second() {
+			modDate = newModDate
+		}
+	}
+
+	return modDate, nil
 }
 
 func (execErr ExecutionError) Error() string {

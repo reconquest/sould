@@ -37,7 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server, err := NewMirrorServer(config, PullStateTable{})
+	server, err := NewMirrorServer(config, MirrorStateTable{})
 	if err != nil {
 		log.Fatal(err)
 	}
