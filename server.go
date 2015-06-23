@@ -83,6 +83,8 @@ func (server *MirrorServer) NetDial(
 	timeout := time.Duration(
 		int64(time.Microsecond) * int64(server.GetTimeout()),
 	)
+	log.Printf("netdial address: %#v", address)
+	log.Printf("timeout: %#v", timeout)
 
 	return net.DialTimeout(network, address, timeout)
 }

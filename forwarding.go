@@ -3,17 +3,16 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"sync"
 )
 
 func feedSlaves(
-	slaves []string,
-	httpClient *http.Client,
-	mirrorName string,
-	mirrorCloneURL string,
-) ([]string, []error) {
+	slaves []string, httpClient *http.Client,
+	mirrorName string, mirrorOrigin string,
+) (fedSlaves []string, errors []error) {
 	var (
 		work = sync.WaitGroup{}
 
@@ -23,49 +22,50 @@ func feedSlaves(
 
 	for _, slave := range slaves {
 		go func(slave string) {
-			//  mirrorName and mirrorCloneURL will be availabled
+			defer work.Done()
+
+			// mirrorName and mirrorOrigin will be availabled
 			// by link
-			err := feedSlave(slave, httpClient, mirrorName, mirrorCloneURL)
+			log.Printf("run for slave: %#v", slave)
+			err := feedSlave(slave, httpClient, mirrorName, mirrorOrigin)
 			if err != nil {
+				log.Printf("go err: %#v", err)
 				pipeErrors <- err
 			} else {
 				pipeFedSlaves <- slave
 			}
 
-			work.Done()
 		}(slave)
 
 		work.Add(1)
 	}
 
-	var (
-		fedSlaves []string
-		errors    []error
-	)
+	go func() {
+		for err := range pipeErrors {
+			log.Printf("got err err: %#v", err)
+			errors = append(errors, err)
+		}
+	}()
 
-	select {
-	case err := <-pipeErrors:
-		errors = append(errors, err)
+	go func() {
+		for fedSlave := range pipeFedSlaves {
+			log.Printf("got fedSlave fedSlave: %#v", fedSlave)
+			fedSlaves = append(fedSlaves, fedSlave)
+		}
+	}()
 
-	case fedSlave := <-pipeFedSlaves:
-		fedSlaves = append(fedSlaves, fedSlave)
-
-	default:
-		work.Wait()
-	}
+	work.Wait()
 
 	return fedSlaves, errors
 }
 
 func feedSlave(
-	slave string,
-	httpClient *http.Client,
-	mirrorName string,
-	mirrorCloneURL string,
+	slave string, httpClient *http.Client,
+	mirrorName string, mirrorOrigin string,
 ) error {
 	payload := url.Values{
-		"name": {mirrorName},
-		"url":  {mirrorCloneURL},
+		"name":   {mirrorName},
+		"origin": {mirrorOrigin},
 	}
 
 	response, err := httpClient.PostForm(
@@ -79,7 +79,7 @@ func feedSlave(
 		)
 	}
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != 200 && response.StatusCode != 201 {
 		statusError := fmt.Errorf(
 			"slave '%s' was unwell, http status is '%s'",
 			slave, response.Status,

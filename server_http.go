@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -52,21 +51,21 @@ func (server *MirrorServer) HandlePOST(
 	err := request.ParseForm()
 	if err != nil {
 		log.Println(err)
-		writeResponseError(response, http.StatusBadRequest, err.Error())
+		writeResponseMessage(response, http.StatusBadRequest, err.Error())
 
 		return
 	}
 
 	var (
-		mirrorName   = request.FormValue("name")
-		mirrorOrigin = request.FormValue("origin")
+		responseMessages []string
 
 		hadCreateMirror     bool
 		pullFailed          bool
 		forwardingFailed    bool
 		forwardingFailedAll bool
 
-		responseMessages []string
+		mirrorName   = request.FormValue("name")
+		mirrorOrigin = request.FormValue("origin")
 	)
 
 	for paramName, paramValue := range map[string]string{
@@ -80,7 +79,7 @@ func (server *MirrorServer) HandlePOST(
 
 			log.Printf("%s, request = '%#v'", err.Error(), request.Form)
 
-			writeResponseError(
+			writeResponseMessage(
 				response, http.StatusBadRequest, err.Error(),
 			)
 
@@ -97,7 +96,7 @@ func (server *MirrorServer) HandlePOST(
 		err = fmt.Errorf("mirror origin should be URL")
 
 		log.Println(err)
-		writeResponseError(
+		writeResponseMessage(
 			response, http.StatusForbidden, err.Error(),
 		)
 
@@ -107,7 +106,7 @@ func (server *MirrorServer) HandlePOST(
 	mirror, hadCreateMirror, err := server.GetMirror(mirrorName, mirrorOrigin)
 	if err != nil {
 		log.Println(err)
-		writeResponseError(
+		writeResponseMessage(
 			response, http.StatusInternalServerError, err.Error(),
 		)
 
@@ -126,8 +125,7 @@ func (server *MirrorServer) HandlePOST(
 		pullFailed = true
 
 		err = fmt.Errorf(
-			"can't update mirror '%s': %s",
-			mirrorName, err.Error(),
+			"can't update mirror '%s': %s", mirrorName, err.Error(),
 		)
 		log.Println(err)
 		responseMessages = append(responseMessages, err.Error())
@@ -144,11 +142,14 @@ func (server *MirrorServer) HandlePOST(
 
 	if server.IsMaster() {
 		slaves := server.GetSlaves()
+		log.Printf("slaves: %#v", slaves)
 		if len(slaves) > 0 {
 			fedSlaves, errors := feedSlaves(
 				slaves, server.httpClient,
 				mirrorName, mirrorOrigin,
 			)
+			log.Printf("fedSlaves: %#v", fedSlaves)
+			log.Printf("errors: %#v", errors)
 
 			if len(fedSlaves) > 0 {
 				log.Printf(
@@ -192,13 +193,9 @@ func (server *MirrorServer) HandlePOST(
 		httpStatus = http.StatusOK
 	}
 
-	if len(responseMessages) == 0 {
-		response.WriteHeader(httpStatus)
-	} else {
-		writeResponseError(
-			response, httpStatus, strings.Join(responseMessages, "\n\n"),
-		)
-	}
+	writeResponseMessage(
+		response, httpStatus, strings.Join(responseMessages, "\n\n"),
+	)
 }
 
 func (server MirrorServer) HandleGET(
@@ -222,7 +219,7 @@ func (server MirrorServer) HandleGET(
 			httpStatus = http.StatusNotFound
 		}
 
-		writeResponseError(
+		writeResponseMessage(
 			response, httpStatus, err.Error(),
 		)
 
@@ -272,7 +269,7 @@ func (server MirrorServer) HandleGET(
 			"can't get tar archive of '%s' mirror: %s",
 			mirrorName, err.Error(),
 		)
-		writeResponseError(
+		writeResponseMessage(
 			response, http.StatusInternalServerError, err.Error(),
 		)
 
@@ -288,15 +285,14 @@ func (server MirrorServer) HandleGET(
 			mirrorName, archive,
 		)
 
-		writeResponseError(
+		writeResponseMessage(
 			response, http.StatusInternalServerError, err.Error(),
 		)
 	}
 }
 
-// GetMirror will try to get mirror from server storage director if can not,
+// GetMirror will try to get mirror from server storage directory and if can not,
 // then will try to create mirror with passed arguments.
-// if had to create mirror, then 'created bool' returning variable will be true.
 func (server MirrorServer) GetMirror(
 	name string, origin string,
 ) (mirror Mirror, hadCreate bool, err error) {
@@ -341,21 +337,11 @@ func (server MirrorServer) GetMirror(
 	return mirror, false, err
 }
 
-func writeResponseError(
-	response http.ResponseWriter,
-	httpStatusCode int,
-	message string,
+func writeResponseMessage(
+	response http.ResponseWriter, httpStatus int, message string,
 ) {
-	response.WriteHeader(httpStatusCode)
-
-	encodedMessage, err := json.Marshal(
-		map[string]interface{}{"error": message},
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	response.Write(encodedMessage)
+	response.WriteHeader(httpStatus)
+	response.Write([]byte(message))
 }
 
 func isURL(origin string) bool {
@@ -366,7 +352,7 @@ func isURL(origin string) bool {
 	}
 
 	for _, prefix := range prefixes {
-		if strings.HasPrefix(prefix, origin) {
+		if strings.HasPrefix(origin, prefix) {
 			return true
 		}
 	}

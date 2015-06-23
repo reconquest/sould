@@ -38,34 +38,35 @@ get_config_master() {
     local timeout="$3"
     shift 3
 
-    local slaves='"'${@// /'", "'}'"'
+    local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
 
     local path="$(get_config_slave $listen $storage)"
 
-    local config=<<EOF
+    local config="
 master = true
 timeout = $timeout
 slaves = [$slaves]
-EOF
+"
 
-    #echo "$config" >> "$path"
+    echo "$config" >> "$path"
     echo "$path"
 }
 
 run_sould() {
     local config="$1"
+    local unsecure=$2
 
-    local unsecure=""
-    if $2; then
-        unsecure="--unsecure"
+    local params="-c $1"
+    if $unsecure; then
+        params="$params --unsecure"
     fi
 
     local listen="$(cat $config | awk '/listen/{print $3}' | sed 's/"//g')"
 
     tests_debug "running sould server on $listen"
 
-    tests_background "$SOULD_BIN -c $config $unsecure"
-    local bg_pid=$(tests_background_pid)
+    local bg_id=$(tests_background "$SOULD_BIN $params")
+    local bg_pid=$(tests_background_pid $bg_id)
 
 
     # 10 seconds
@@ -83,7 +84,7 @@ run_sould() {
         grep -q "$listen" <<< "$(netstat -tl)"
         local grep_result=$?
         if [ $grep_result -eq 0 ]; then
-            return 0
+            break
         fi
 
         check_counter=$(($check_counter+1))
@@ -92,6 +93,8 @@ run_sould() {
             return 1
         fi
     done
+
+    echo $bg_id
 }
 
 request_pull() {
@@ -100,6 +103,7 @@ request_pull() {
     local origin="$3"
 
     curl -s -v -X POST \
+        -m 10 \
         --data "name=$name&origin=$origin" \
         "$(get_listen_addr $number)" 2>&1
 }
