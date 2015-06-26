@@ -23,15 +23,12 @@ config_master="`get_config_master $addr_master $storage_master 3000 $slaves`"
 # run all servers
 tests_do run_sould $config_slave_pa true
 tests_assert_success
-slave_pa_bg=$TEST_STDOUT
 
 tests_do run_sould $config_slave_re true
 tests_assert_success
-slave_re_bg=$TEST_STDOUT
 
 tests_do run_sould $config_master true
 tests_assert_success
-master_bg=$TEST_STDOUT
 
 # create upstream git repository with one commit
 tests_do create_repository "upstream"

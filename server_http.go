@@ -40,7 +40,6 @@ func (server *MirrorServer) ServeHTTP(
 
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)
-
 		log.Printf("got request with unsupported method: '%s'", method)
 	}
 }
@@ -65,7 +64,7 @@ func (server *MirrorServer) HandlePOST(
 	}
 
 	log.Printf(
-		"got pull request for mirror with name = %s, origin = %s",
+		"got pull request for mirror, name = %s, origin = %s",
 		mirrorName, mirrorOrigin,
 	)
 
@@ -215,19 +214,21 @@ func (server MirrorServer) HandleGET(
 		server.stateTable.SetState(mirrorName, mirrorState)
 	}
 
-	response.Header().Set("X-State", string(mirrorState))
+	modDate, err := mirror.GetModDate()
+	if err != nil {
+		message := fmt.Sprintf(
+			"could not get modify time of '%s' mirror repository: %s",
+			mirrorName, err.Error(),
+		)
 
-	if mirrorState != MirrorStateSuccess {
-		modDate, err := mirror.GetModDate()
-		if err != nil {
-			err = fmt.Errorf(
-				"could not get modify time of '%s' mirror repository: %s",
-				mirrorName, err.Error(),
-			)
-		}
+		log.Printf(message)
+		http.Error(response, message, http.StatusInternalServerError)
 
-		response.Header().Set("X-Date", modDate.UTC().Format(http.TimeFormat))
+		return
 	}
+
+	response.Header().Set("X-State", mirrorState.String())
+	response.Header().Set("X-Date", modDate.UTC().Format(http.TimeFormat))
 
 	archive, err := mirror.GetArchive()
 	if err != nil {
