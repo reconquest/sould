@@ -1,51 +1,39 @@
 # sould
 
-**sould** is a simple service which provides HTTP API for access to git
-repositories.
+**sould** is the scalable failover service for mirroring git repositories.
 
-It is very convenient for using within containers. With **sould** you can
-create repositories, change and store data without using `git` utility.
+It is very convenient when you use some, for example, config templates in git
+repositories and wants get access to your files at any time.
 
-## API
+But how sould creates a mirrors for my repositories? Good question, my friend.
 
-### Creating a repository
+For first, sould nothing knows about your repositories and you should talk him
+about it. And all he needs it is mirror name and clone url (origin).
 
-Generally to create a repository you need make a `POST` request to `/` with
-repository name in request body.
+You can create a push-receive hook which will send mirror name and clone url to
+sould server, and sould, for its part, will make a clone of specified
+repository, but if he already have repository with this one mirror name and
+clone url, he will make a pull changes. Stupid as a fish, yep.
 
-- Repository name should be unique.
-- Repository name may contain directory separators.
-
-#### Request params
-- `name` - specify repository name.
-
-#### Response statuses
-- `201 Created` - repository created.
-- `209 Conflict` - repository name does not unique.
-
-##### Example
-
+*sould* is very simple in configuration, basic config looks like this:
 ```
-curl --data "name=images/dev/new-environment" -X POST http://soul.d:80/
+listen = ":80"
+storage = "/var/sould/"
 ```
 
-If everything is ok, sould should return `201 Created` and create a
-git repository in `/var/sould/images/dev/new-environment/`.
+- `listen` directive talks about what address sould should listen to.
 
-### Creating/updating files in a repository
+- `storage` directive is a path to directory, which will be used as a root
+ directory for all new mirrors, so if you wants create a mirror with name
+ 'dev/configs', sould will create a *base* repository in
+ `/var/sould/dev/configs/`.
 
-For creating or updating files in a repository you need to send `PUT` request
-with `multipart/form-data` content type encoding and specify additional
-parameter `op` with value `update` (no matter the file creates/updates
-`op` should be `update`)
+## Arbitary example
 
-- Files should be stored in request body with `files[]` name.
-- File names should not contains `../` and should not has prefix `.git`.
+Jack have a git repository with templates for configs for some soft in the
+repository `https://git.in.local/jack/gunter-configs` and Jack know,
+`git.in.local` - it is the point of failure, because if `git.in.local` put down,
+all of Jack containers will not be able to get the configs, so all Jack
+infrastructure will be put down, and Jack will be put down.
 
-#### Response statuses
-- `200 OK` - files changed.
-- `404 Not Found` - repository not found.
-- `403 Forbidden` - file have unsafe or malicious name.
-  (file name should not contains `../` and should not have prefix `.git`)
-
-####
+Jack...
