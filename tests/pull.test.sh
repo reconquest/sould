@@ -43,7 +43,7 @@ mirror_name="mirror/for/upstream"
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 # should be '201 Created' instead of '200 OK' because master does not have
 # mirror to repository 'upstream' yet
-tests_assert_stderr_re "HTTP/1.1 201 Created"
+tests_assert_stderr_re "201 Created"
 
 # check for successfully propagate request to pulls, check commit in all
 # storages
@@ -65,7 +65,7 @@ tests_do create_commit "upstream" "bar"
 tests_assert_success
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re 'HTTP/1.1 200 OK'
+tests_assert_stderr_re '200 OK'
 
 for storage in $storages; do
     mirror_dir=$storage/$mirror_name
@@ -84,7 +84,7 @@ tests_do ln -sf /dev/null $storage_slave_pa
 tests_assert_success
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re 'HTTP/1.1 502 Bad Gateway'
+tests_assert_stderr_re '502 Bad Gateway'
 # should show message from 'pa' slave
 tests_assert_stdout_re "http status is '500 Internal Server Error'"
 tests_assert_stdout_re "$storage_slave_pa/$mirror_name: not a directory"
@@ -95,7 +95,7 @@ tests_assert_success
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 # master should show all messages, which returned by slaves
-tests_assert_stderr_re 'HTTP/1.1 503 Service Unavailable'
+tests_assert_stderr_re '503 Service Unavailable'
 tests_assert_stdout_re "slave '$addr_slave_pa'.*500 Internal Server Error"
 tests_assert_stdout_re "slave '$addr_slave_re'.*500 Internal Server Error"
 tests_assert_stdout_re "$storage_slave_pa/$mirror_name: not a directory"
@@ -111,4 +111,4 @@ tests_assert_success
 
 # does cluster restored?
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re 'HTTP/1.1 200 OK'
+tests_assert_stderr_re '200 OK'

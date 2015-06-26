@@ -29,6 +29,7 @@ if [ ! -f tests/lib/tests.sh ]; then
     fi
 fi
 
+# read more at https://github.com/reconquest/tests.sh
 source tests/lib/tests.sh
 
 #TEST_VERBOSE=10

@@ -1,11 +1,17 @@
 #!/bin/bash
 
+# Function 'get_listen_addr' returns listen address for sould.
+# Args:
+#   $1 - number of running sould
 get_listen_addr() {
     local number=$1
 
     echo "localhost:"$((60000+$number))
 }
 
+# Function 'get_storage' returns storage temporary directory path.
+# Args:
+#   $1 - number of running sould
 get_storage() {
     local number="$1"
 
@@ -17,6 +23,11 @@ get_storage() {
     echo $directory
 }
 
+# Function 'get_config_slave' returns basic configuration for sould in
+# non-master mode.
+# Args:
+#    $1 - listening address
+#    $2 - storage directory path
 get_config_slave() {
     local listen="$1"
     local storage="$2"
@@ -32,6 +43,12 @@ storage = \"$storage\"
     echo "$path"
 }
 
+# Function 'get_config_master' returns config for sould in master mode.
+# master config inherits slave config.
+# Args
+#   $1 - listening address
+#   $2 - storage directory path
+#   $@ - slaves
 get_config_master() {
     local listen="$1"
     local storage="$2"
@@ -52,6 +69,11 @@ slaves = [$slaves]
     echo "$path"
 }
 
+# Function 'run_sould' starts background work for sould with specified config.
+# Returns unique background work identifier.
+# Args:
+#    $1 - configuration file
+#    $2 - unsecure mode (boolean value)
 run_sould() {
     local config="$1"
     local unsecure=$2
@@ -97,6 +119,12 @@ run_sould() {
     echo $bg_id
 }
 
+# Function 'requests_pull' do POST request to a sould server, which should be
+# specified by number.
+# Args:
+#    $1 - sould server number
+#    $2 - mirror name
+#    $3 - mirror origin (clone url)
 request_pull() {
     local number="$1"
     local name="$2"
@@ -108,6 +136,11 @@ request_pull() {
         "$(get_listen_addr $number)"
 }
 
+# Function 'request_tar' do GET request to a sould server, which should be
+# specified by number, tar archive content will be available in stdout.
+# Args:
+#    $1 - sould server number
+#    $2 - mirror name
 request_tar() {
     local number="$1"
     local mirror="$2"
@@ -117,6 +150,13 @@ request_tar() {
         "$(get_listen_addr $number)"/$mirror
 }
 
+# Function 'create_git' creates a git commit in directory with git repository,
+# which should be created by function 'create_repository'.
+# Function creates file with specified name and adds commit with content
+# 'test-$file-commit'
+# Args:
+#   $1 - repository directory (relative path to temporary directory)
+#   $2 - file
 create_commit() {
     local repository="$1"
     local file="$2"
@@ -130,6 +170,10 @@ create_commit() {
     tests_assert_success
 }
 
+# Function 'create_repository' creates a git repository in temporary test
+# directory.
+# Args:
+#   $1 - directory name
 create_repository() {
     local name="$1"
 
