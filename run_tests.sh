@@ -1,15 +1,18 @@
 #!/bin/bash
-
 #set -x
 
-SOULD_LISTEN="localhost:60088"
-SOULD_BIN="$(readlink -f sould)"
+SOULD_BIN="$(mktemp --suffix .sould)"
 
 go build -o $SOULD_BIN
 if [ $? -ne 0 ]; then
     echo "can't build project"
     exit 1
 fi
+
+cleanup() {
+    rm -f $SOULD_BIN
+}
+trap cleanup EXIT
 
 source tests/functions.sh
 
@@ -28,7 +31,7 @@ fi
 
 source tests/lib/tests.sh
 
-TEST_VERBOSE=10
+#TEST_VERBOSE=10
 
 cd tests/
 tests_run_all

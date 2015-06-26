@@ -105,25 +105,37 @@ request_pull() {
     curl -s -v -X POST \
         -m 10 \
         --data "name=$name&origin=$origin" \
-        "$(get_listen_addr $number)" 2>&1
+        "$(get_listen_addr $number)"
 }
 
-# update() function updates repository with specified name and uploads files
-# Args:
-# $1 - mirror name
-# $@ - files
-request_update() {
+request_tar() {
+    local number="$1"
+    local mirror="$2"
+
+    curl -s -v -X GET \
+        -m 10 \
+        "$(get_listen_addr $number)"/$mirror
+}
+
+create_commit() {
+    local repository="$1"
+    local file="$2"
+
+    tests_tmp_cd $repository
+    tests_do touch $file
+    tests_assert_success
+    tests_do git add $file
+    tests_assert_success
+    tests_do git commit -m test-$file-commit
+    tests_assert_success
+}
+
+create_repository() {
     local name="$1"
-    shift
 
-    local files=""
-    while (( "$#" )); do
-        files="$files -F files[]=@$1;filename=$1"
-        shift
-    done
+    tests_mkdir $name
+    tests_tmp_cd $name
 
-    curl -s -v -X PUT \
-        -F "op=update" \
-        $files \
-        http://$SOULD_LISTEN/$name 2>&1
+    tests_do git init
+    tests_assert_success
 }

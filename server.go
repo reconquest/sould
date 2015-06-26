@@ -49,7 +49,6 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 		if err != nil && !zhash.IsNotFound(err) {
 			return err
 		}
-
 		if len(slaves) == 0 {
 			log.Println(
 				"slave servers directive is empty or not defined",
@@ -81,10 +80,8 @@ func (server *MirrorServer) NetDial(
 	network, address string,
 ) (net.Conn, error) {
 	timeout := time.Duration(
-		int64(time.Microsecond) * int64(server.GetTimeout()),
+		int64(time.Microsecond) * server.GetTimeout(),
 	)
-	log.Printf("netdial address: %#v", address)
-	log.Printf("timeout: %#v", timeout)
 
 	return net.DialTimeout(network, address, timeout)
 }
@@ -113,8 +110,8 @@ func (server *MirrorServer) GetTimeout() int64 {
 	return timeout
 }
 
-func (server *MirrorServer) GetSlaves() []string {
-	slaves, _ := server.config.GetStringSlice("slaves")
+func (server *MirrorServer) GetSlaves() MirrorSlaves {
+	hosts, _ := server.config.GetStringSlice("slaves")
 
-	return slaves
+	return NewMirrorSlaves(hosts)
 }
