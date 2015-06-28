@@ -114,12 +114,13 @@ func (mirror Mirror) GetOrigin() (string, error) {
 		return "", err
 	}
 
-	origin := strings.TrimRight(string(output), " \n")
+	// TrimSpace also removes '\n', '\r', '\t'
+	origin := strings.TrimSpace(string(output))
 
 	return origin, nil
 }
 
-func (mirror Mirror) GetModDate() (time.Time, error) {
+func (mirror Mirror) GetModifyDate() (time.Time, error) {
 	dirs := []string{
 		"refs/heads",
 		"refs/tags",

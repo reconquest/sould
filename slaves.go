@@ -3,14 +3,15 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
 )
 
-type MirrorSlave string
-type MirrorSlaves []MirrorSlave
+type (
+	MirrorSlave  string
+	MirrorSlaves []MirrorSlave
+)
 
 func NewMirrorSlaves(hosts []string) MirrorSlaves {
 	slaves := MirrorSlaves{}
@@ -38,7 +39,6 @@ func (slaves MirrorSlaves) Pull(
 	mirrorName string, mirrorOrigin string,
 	httpClient *http.Client,
 ) (updatedSlaves MirrorSlaves, errors []error) {
-
 	var (
 		workers = sync.WaitGroup{}
 
@@ -50,16 +50,14 @@ func (slaves MirrorSlaves) Pull(
 		go func(slave MirrorSlave) {
 			defer workers.Done()
 
-			// mirrorName and mirrorOrigin will be availabled by link
-			log.Printf("run for slave: %#v", slave)
+			// mirrorName, mirrorOrigin and httpClient will be availabled there
+			// by link
 			err := slave.Pull(mirrorName, mirrorOrigin, httpClient)
 			if err != nil {
-				log.Printf("go err: %#v", err)
 				pipeErrors <- err
 			} else {
 				pipeUpdates <- slave
 			}
-
 		}(slave)
 
 		workers.Add(1)
@@ -67,14 +65,12 @@ func (slaves MirrorSlaves) Pull(
 
 	go func() {
 		for err := range pipeErrors {
-			log.Printf("got err err: %#v", err)
 			errors = append(errors, err)
 		}
 	}()
 
 	go func() {
 		for slave := range pipeUpdates {
-			log.Printf("got updatedSlave updatedSlave: %#v", slave)
 			updatedSlaves = append(updatedSlaves, slave)
 		}
 	}()

@@ -10,18 +10,18 @@ import (
 )
 
 type MirrorServer struct {
-	stateTable MirrorStateTable
-	config     zhash.Hash
-	httpClient *http.Client
-	unsecure   bool
+	config       zhash.Hash
+	stateTable   MirrorStateTable
+	httpClient   *http.Client
+	unsecureMode bool
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table MirrorStateTable, unsecure bool,
+	config zhash.Hash, table MirrorStateTable, unsecureMode bool,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
-		stateTable: table,
-		unsecure:   unsecure,
+		stateTable:   table,
+		unsecureMode: unsecureMode,
 	}
 
 	server.httpClient = &http.Client{
@@ -75,16 +75,6 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 	return nil
 }
 
-func (server *MirrorServer) NetDial(
-	network, address string,
-) (net.Conn, error) {
-	timeout := time.Duration(
-		int64(time.Microsecond) * server.GetTimeout(),
-	)
-
-	return net.DialTimeout(network, address, timeout)
-}
-
 func (server *MirrorServer) IsMaster() bool {
 	isMaster, _ := server.config.GetBool("master")
 
@@ -113,4 +103,14 @@ func (server *MirrorServer) GetSlaves() MirrorSlaves {
 	hosts, _ := server.config.GetStringSlice("slaves")
 
 	return NewMirrorSlaves(hosts)
+}
+
+func (server *MirrorServer) NetDial(
+	network, address string,
+) (net.Conn, error) {
+	timeout := time.Duration(
+		int64(time.Microsecond) * server.GetTimeout(),
+	)
+
+	return net.DialTimeout(network, address, timeout)
 }

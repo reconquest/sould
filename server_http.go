@@ -11,21 +11,16 @@ import (
 func (server *MirrorServer) ListenHTTP() error {
 	http.Handle("/", server)
 
-	err := http.ListenAndServe(server.GetListenAddress(), nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return http.ListenAndServe(server.GetListenAddress(), nil)
 }
 
 func (server *MirrorServer) ServeHTTP(
 	response http.ResponseWriter, request *http.Request,
 ) {
 	defer func() {
-		err := recover()
-		if err != nil {
-			log.Println(err)
+		panicError := recover()
+		if panicError != nil {
+			log.Println(panicError)
 		}
 	}()
 
@@ -33,10 +28,10 @@ func (server *MirrorServer) ServeHTTP(
 
 	switch method {
 	case "POST":
-		server.HandlePOST(response, request)
+		server.handlePOST(response, request)
 
 	case "GET":
-		server.HandleGET(response, request)
+		server.handleGET(response, request)
 
 	default:
 		response.WriteHeader(http.StatusMethodNotAllowed)
@@ -44,7 +39,7 @@ func (server *MirrorServer) ServeHTTP(
 	}
 }
 
-func (server *MirrorServer) HandlePOST(
+func (server *MirrorServer) handlePOST(
 	response http.ResponseWriter, request *http.Request,
 ) {
 	var (
@@ -64,15 +59,14 @@ func (server *MirrorServer) HandlePOST(
 	}
 
 	log.Printf(
-		"got pull request for mirror, name = %s, origin = %s",
+		"got pull request for mirror, name = '%s', origin = '%s'",
 		mirrorName, mirrorOrigin,
 	)
 
-	if !server.unsecure && !isURL(mirrorOrigin) {
-		err = fmt.Errorf("mirror origin should be URL")
-
-		log.Println(err)
-		http.Error(response, err.Error(), http.StatusForbidden)
+	if !server.unsecureMode && !isURL(mirrorOrigin) {
+		message := "mirror origin should be URL"
+		log.Printf("%s, url is '%s'", message, mirrorOrigin)
+		http.Error(response, message, http.StatusForbidden)
 		return
 	}
 
@@ -113,13 +107,10 @@ func (server *MirrorServer) HandlePOST(
 
 	if server.IsMaster() {
 		slaves := server.GetSlaves()
-		log.Printf("slaves: %#v", slaves)
 		if len(slaves) > 0 {
 			updatedSlaves, errors := slaves.Pull(
 				mirrorName, mirrorOrigin, server.httpClient,
 			)
-			log.Printf("updatedSlaves: %#v", updatedSlaves)
-			log.Printf("errors: %#v", errors)
 
 			if len(updatedSlaves) > 0 {
 				log.Printf(
@@ -130,15 +121,13 @@ func (server *MirrorServer) HandlePOST(
 
 			if len(errors) > 0 {
 				forwardingFailed = true
+				if len(updatedSlaves) == 0 {
+					forwardingFailedAll = true
+				}
 
 				for _, err := range errors {
 					log.Println(err)
-
 					responseMessages = append(responseMessages, err.Error())
-				}
-
-				if len(updatedSlaves) == 0 {
-					forwardingFailedAll = true
 				}
 			}
 		}
@@ -166,9 +155,8 @@ func (server *MirrorServer) HandlePOST(
 	http.Error(response, strings.Join(responseMessages, "\n\n"), status)
 }
 
-func (server MirrorServer) HandleGET(
-	response http.ResponseWriter,
-	request *http.Request,
+func (server MirrorServer) handleGET(
+	response http.ResponseWriter, request *http.Request,
 ) {
 	mirrorName := strings.Trim(request.RequestURI, "/")
 
@@ -202,19 +190,19 @@ func (server MirrorServer) HandleGET(
 
 		err = mirror.Pull()
 		if err != nil {
+			newMirrorState = MirrorStateFailed
+
 			log.Printf(
 				"can't pull mirror '%s': %s",
 				mirrorName, err.Error(),
 			)
-
-			newMirrorState = MirrorStateFailed
 		}
 
+		server.stateTable.SetState(mirrorName, newMirrorState)
 		mirrorState = newMirrorState
-		server.stateTable.SetState(mirrorName, mirrorState)
 	}
 
-	modDate, err := mirror.GetModDate()
+	modifyDate, err := mirror.GetModifyDate()
 	if err != nil {
 		message := fmt.Sprintf(
 			"could not get modify time of '%s' mirror repository: %s",
@@ -223,12 +211,11 @@ func (server MirrorServer) HandleGET(
 
 		log.Printf(message)
 		http.Error(response, message, http.StatusInternalServerError)
-
 		return
 	}
 
 	response.Header().Set("X-State", mirrorState.String())
-	response.Header().Set("X-Date", modDate.UTC().Format(http.TimeFormat))
+	response.Header().Set("X-Date", modifyDate.UTC().Format(http.TimeFormat))
 
 	archive, err := mirror.GetArchive()
 	if err != nil {
@@ -238,7 +225,6 @@ func (server MirrorServer) HandleGET(
 		)
 
 		http.Error(response, err.Error(), http.StatusInternalServerError)
-
 		return
 	}
 
@@ -252,7 +238,6 @@ func (server MirrorServer) HandleGET(
 		)
 
 		http.Error(response, err.Error(), http.StatusInternalServerError)
-
 		return
 	}
 }
@@ -262,14 +247,11 @@ func (server MirrorServer) HandleGET(
 func (server MirrorServer) GetMirror(
 	name string, origin string,
 ) (mirror Mirror, hadCreate bool, err error) {
-	mirror, err = GetMirror(
-		server.GetStorageDir(), name,
-	)
+	mirror, err = GetMirror(server.GetStorageDir(), name)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return Mirror{}, false, fmt.Errorf(
-				"can't get mirror '%s': %s",
-				name, err.Error(),
+				"can't get mirror '%s': %s", name, err.Error(),
 			)
 		}
 
@@ -277,9 +259,9 @@ func (server MirrorServer) GetMirror(
 			server.GetStorageDir(), name, origin,
 		)
 		if err != nil {
-			return Mirror{}, true, fmt.Errorf(
-				"can't create mirror '%s': %s",
-				name, err.Error(),
+			// hadCreate variable should be false, because creating is failed.
+			return Mirror{}, false, fmt.Errorf(
+				"can't create mirror '%s': %s", name, err.Error(),
 			)
 		}
 
@@ -287,6 +269,7 @@ func (server MirrorServer) GetMirror(
 	}
 
 	// if mirror is already exists
+
 	actualOrigin, err := mirror.GetOrigin()
 	if err != nil {
 		err = fmt.Errorf(
@@ -303,20 +286,6 @@ func (server MirrorServer) GetMirror(
 	return mirror, false, err
 }
 
-func isURL(str string) bool {
-	var prefixes = []string{
-		"ssh://", "https://", "http://",
-	}
-
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(str, prefix) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func getMirrorParams(request *http.Request) (string, string, error) {
 	var fields = []string{
 		"name", "origin",
@@ -330,14 +299,27 @@ func getMirrorParams(request *http.Request) (string, string, error) {
 	for _, fieldName := range fields {
 		fieldValue := request.FormValue(fieldName)
 		if fieldValue == "" {
-			err := fmt.Errorf(
-				"'%s' param is empty, http form: '%#v'",
+			return "", "", fmt.Errorf(
+				"'%s' form param is empty, http form: '%#v'",
 				fieldName, request.Form,
 			)
 
-			return "", "", err
 		}
 	}
 
 	return request.FormValue("name"), request.FormValue("origin"), nil
+}
+
+func isURL(str string) bool {
+	var prefixes = []string{
+		"ssh://", "https://", "http://",
+	}
+
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(str, prefix) {
+			return true
+		}
+	}
+
+	return false
 }
