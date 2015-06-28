@@ -25,15 +25,15 @@ storage = "/var/sould/"
 
 - `storage` directive is a path to directory, which will be used as a root
  directory for all new mirrors, so if you wants create a mirror with name
- 'dev/configs', sould will create a *base* repository in
+ 'dev/configs', sould will create a *bare* repository in
  `/var/sould/dev/configs/`.
 
 ## Arbitary example
 
 Jack have a git repository with templates for configs for some soft in the
 repository `https://git.in.local/jack/gunter-configs` and Jack know,
-`git.in.local` - it is the point of failure, because if `git.in.local` put down,
-all of Jack containers will not be able to get the configs, so all Jack
+`git.in.local` - it is the point of failure, because if `git.in.local` put
+down, all of Jack containers will not be able to get the configs, so all Jack
 infrastructure will be put down, and Jack will be put down.
 
 Jack...
