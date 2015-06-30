@@ -53,7 +53,7 @@ func (server *MirrorServer) handlePOST(
 
 	mirrorName, mirrorOrigin, err := getMirrorParams(request)
 	if err != nil {
-		log.Println(err)
+		log.Println("%s, got http form: %#v", err, request.Form)
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -242,8 +242,8 @@ func (server MirrorServer) handleGET(
 	}
 }
 
-// GetMirror will try to get mirror from server storage directory and if can not,
-// then will try to create mirror with passed arguments.
+// GetMirror will try to get mirror from server storage directory and if can
+// not, then will try to create mirror with passed arguments.
 func (server MirrorServer) GetMirror(
 	name string, origin string,
 ) (mirror Mirror, hadCreate bool, err error) {
@@ -286,28 +286,26 @@ func (server MirrorServer) GetMirror(
 	return mirror, false, err
 }
 
-func getMirrorParams(request *http.Request) (string, string, error) {
-	var fields = []string{
-		"name", "origin",
-	}
-
-	err := request.ParseForm()
+func getMirrorParams(
+	request *http.Request,
+) (name string, origin string, err error) {
+	err = request.ParseForm()
 	if err != nil {
 		return "", "", err
 	}
 
-	for _, fieldName := range fields {
-		fieldValue := request.FormValue(fieldName)
-		if fieldValue == "" {
-			return "", "", fmt.Errorf(
-				"'%s' form param is empty, http form: '%#v'",
-				fieldName, request.Form,
-			)
+	name = request.FormValue("name")
+	origin = request.FormValue("origin")
 
-		}
+	switch {
+	case name == "":
+		err = fmt.Errorf("mirror name can not be empty")
+
+	case origin == "":
+		err = fmt.Errorf("mirror origin (clone url) can not be empty")
 	}
 
-	return request.FormValue("name"), request.FormValue("origin"), nil
+	return name, origin, err
 }
 
 func isURL(str string) bool {
