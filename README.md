@@ -15,34 +15,56 @@ about it. And all he needs it is mirror name and clone url (origin).
 For communication sould uses the HTTP REST-like interface, and implements two
 methods:
 
-1. POST - send replicate request, on this request sould server will fetch all
+1. `POST` - send replicate request, on this request sould server will fetch all
 repository changes. If server works in master mode, then request will be
 propagated to all known slaves.
 
-2. GET - get tar archive request, on this request sould server will create
-a tar archive with content of last revision.
+Basic response statuses:
+- `201 Created` - this status returns when sould does not know about this
+repository, and he had create new mirror.
+- `200 OK` - everything is okay, all changes has been replicated.
+- `500 Internal Server Error` - this status returns when sould server have some
+    internal problems, i.e could not write to storage directory, or could not
+    pull repository changeset.
 
-### Send update request
+Master server response statuses:
+- `502 Bad Gateway` - one or more slave servers returned error statuses.
+- `503 Service Unavailable` - this is fatal error, which can be occured only when
+ all sould (including master) servers could not pull repository changeset or
+ returns report about internal server errors.
 
-For sending update request client should send POST to `/` path on sould server.
+**sould** server always reports about all occured errors to stderr and to http
+output, so if master server gets error report from slave server, he will log
+all reports and forward it to the end user's http output.
 
-You can create a post-receive hook which will send mirror name and clone url to
-sould server, and sould, for its part, will make a clone of specified
-repository, but if he already have repository with this one mirror name and
-clone url, he will make a pull changes. Stupid as a fish, yep.
+2. `GET` - get tar archive request, on this request sould server will create
+a tar archive with content of latest revision.
 
-*sould* is very simple in configuration, basic config looks like this:
-```
-listen = ":80"
-storage = "/var/sould/"
-```
+Error statuses:
+- `500 Internal Server Error` - this status can be returned only when sould
+     have a some internal problems, i.e. failed for reading mirror directory.
+     Error details also should be written to http output.
+- `404 Not Found` - sould server does not known about requested mirror.
 
-- `listen` directive talks about what address sould should listen to.
+sould will try to pull repository changes on this request in a few cases:
+- *last pull has been failed*
+    Practice example. Client makes push to origin repository, push-receive hook
+    sends update request to sould master server. And if master server, at this
+    moment, could not connect to origin repository, he remember it, and when
+    some client will try to get a tar archive, sould will try to make a pull.
 
-- `storage` directive is a path to directory, which will be used as a root
- directory for all new mirrors, so if you wants create a mirror with name
- 'dev/configs', sould will create a *bare* repository in
- `/var/sould/dev/configs/`.
+- *sould has been restarted*
+    Anything can happen. But if sould does not pull changes already to this
+    mirror (mirror directory can be just copied to storage directory), then he
+    will try to make a pull request.
+
+Sould also always sends http headers:
+- `X-State` - that header shows the latest pull status.
+    It can be of two types:
+    - `success`
+    - `failed`
+
+- `X-Date` - date of latest successfully mirror update.
 
 ## Usage
 
@@ -66,7 +88,10 @@ that he should do:
 
 ### Setup post-receive hook
 
-Generally, post-receive hook should look like this:
+You should create a post-receive hook which will send mirror name and clone
+url to sould server.
+
+Generally, hook should look like this:
 
 ```bash
 #!/bin/sh
@@ -81,10 +106,26 @@ echo "sending data to sould server $SOULD"
 exec curl --data "name=$NAME&origin=$ORIGIN" -m "$TIMEOUT" $SOULD
 ```
 
-and should be located in `hooks/post-receive` your bare repository.
+and should locates in `hooks/post-receive` your bare repository.
 
 [Read more about git hooks technology](https://raw.githubusercontent.com/git/git/master/Documentation/githooks.txt)
 
 ### Setup slave sould servers
 
-As arbitary example, setups
+Prepare to flight, because sould is easy in configuration, basic config look
+like this:
+
+```
+listen = ":80"
+storage = "/var/sould/"
+```
+
+- `listen` directive talks about what address sould should listen to.
+
+- `storage` directive is a path to directory, which will be used as a root
+ directory for all new mirrors, so if you wants create a mirror with name
+ 'dev/configs', sould will create a *bare* repository in
+ `/var/sould/dev/configs/`.
+
+### Setup master sould server
+Khe-khe
