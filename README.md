@@ -10,15 +10,15 @@ But how sould creates a mirrors for my repositories? Good question, my friend.
 For first, sould nothing knows about your repositories and you should talk him
 about it. And all he needs it is mirror name and clone url (origin).
 
+For communication sould uses the HTTP REST-like interface, and implements two
+methods - `POST` and `GET`.
+
 ## API
 
-For communication sould uses the HTTP REST-like interface, and implements two
-methods:
-
-1. `POST` - send replicate request, on this request sould server will fetch all
-repository changes. If server works in master server, then request will be
-propagated to all known slaves. In communication with slaves, master mode uses
-a parallel threads.
+### POST
+On this request sould server will fetch all repository changes. If server works
+in master server, then request will be propagated to all known slaves. In
+communication with slaves, master mode uses a parallel threads.
 
 Basic response statuses:
 - `201 Created` - this status returns when sould does not know about this
@@ -30,16 +30,17 @@ repository, and he had create new mirror.
 
 Master server response statuses:
 - `502 Bad Gateway` - one or more slave servers returned error statuses.
-- `503 Service Unavailable` - this is fatal error, which can be occured only when
- all sould (including master) servers could not pull repository changeset or
- returns report about internal server errors.
+- `503 Service Unavailable` - this is fatal error, which can be occured only
+    when all sould (including master) servers could not pull repository
+    changeset or returns report about internal server errors.
 
 **sould** server always reports about all occured errors to stderr and to http
 output, so if master server gets error report from slave server, he will log
 all reports and forward it to the end user's http output.
 
-2. `GET` - get tar archive request, on this request sould server will create
-a tar archive with content of latest revision.
+### GET
+On this request sould server will create a tar archive with content of latest
+revision.
 
 Error statuses:
 - `500 Internal Server Error` - this status can be returned only when sould
@@ -47,23 +48,24 @@ Error statuses:
      Error details also should be written to http output.
 - `404 Not Found` - sould server does not known about requested mirror.
 
-sould will try to pull repository changes on this request in a few cases:
+**sould** will try to pull repository changes on this request in a few cases:
 - *last pull has been failed*
+
     Practice example. Client makes push to origin repository, push-receive hook
     sends update request to sould master server. And if master server, at this
     moment, could not connect to origin repository, he remember it, and when
     some client will try to get a tar archive, sould will try to make a pull.
 
 - *sould has been restarted*
+
     Anything can happen. But if sould does not pull changes already to this
     mirror (mirror directory can be just copied to storage directory), then he
     will try to make a pull request.
 
-Sould also always sends http headers:
-- `X-State` - that header shows the latest pull status.
-    It can be of two types:
-    - `success`
-    - `failed`
+**sould** also always sends http headers:
+
+- `X-State` - that header shows the latest pull status. It can be `success` or
+    `failed`.
 
 - `X-Date` - date of latest successfully mirror update.
 
@@ -82,9 +84,9 @@ will be put down.
 So, Jack should create a failover cluster of mirrors to him repository, for
 that he should do:
 
-1. Setup post-receive hook in repository on `git.in.local`.
-3. Setup slave sould servers.
-2. Setup master sould server.
+1. [Setup post-receive hook in repository at `git.in.local`.](#setup-post-receive-hook)
+2. [Setup slave sould servers.](#setup-slave-sould-servers)
+3. [Setup master sould server.](#setup-master-sould-server)
 
 ### Setup post-receive hook
 
@@ -124,7 +126,7 @@ storage = "/var/sould/"
 
 - `storage` directive is a path to directory, which will be used as a root
  directory for all new mirrors, so if you wants create a mirror with name
- 'dev/configs', sould will create a *bare* repository in
+ `dev/configs`, sould will create a *bare* repository in
  `/var/sould/dev/configs/`.
 
 ### Setup master sould server
@@ -157,6 +159,21 @@ storage directory will be used `/var/sould/`.
 
 ##### Reloading configuration
 
-sould reload configuration, when catch `SIGHUP` signal, so you can turn any
+**sould** reload configuration, when catch `SIGHUP` signal, so you can turn any
 slave server to master mode, and, of course, can turn any master server to
 slave server.
+
+## Running
+
+Be default, **sould** read config file from `/etc/sould.conf`, but path to
+configuration file can be changed via specifying `-c <config>` argument.
+
+Example:
+```
+sould -c /tmp/sould.conf
+```
+
+If you need to create local mirrors to local repositories (on the same
+filesystem), then you should pass `--unsecure` flag. Without this flag, sould
+does not create and not update repositories where `origin` parameter is a some
+local path.
