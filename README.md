@@ -165,10 +165,12 @@ slave server.
 
 ## Running
 
-Be default, **sould** read config file from `/etc/sould.conf`, but path to
-configuration file can be changed via specifying `-c <config>` argument.
+Synopsis:
+```
+sould -c <config> [--unsecure]
+```
 
-If you need to create local mirrors to local repositories (on the same
-filesystem), then you should pass `--unsecure` flag. Without this flag, sould
-does not create and not update repositories where `origin` parameter is a some
-local path.
+- `-c <config>` - use specified config file.
+- `--unsecure` -- run sould in unsecure mode. Without this flag, sould
+    does not create and not update repositories where `origin` parameter is a
+    some local path.
