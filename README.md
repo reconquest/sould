@@ -16,8 +16,9 @@ For communication sould uses the HTTP REST-like interface, and implements two
 methods:
 
 1. `POST` - send replicate request, on this request sould server will fetch all
-repository changes. If server works in master mode, then request will be
-propagated to all known slaves.
+repository changes. If server works in master server, then request will be
+propagated to all known slaves. In communication with slaves, master mode uses
+a parallel threads.
 
 Basic response statuses:
 - `201 Created` - this status returns when sould does not know about this
@@ -85,7 +86,6 @@ that he should do:
 3. Setup slave sould servers.
 2. Setup master sould server.
 
-
 ### Setup post-receive hook
 
 You should create a post-receive hook which will send mirror name and clone
@@ -128,4 +128,24 @@ storage = "/var/sould/"
  `/var/sould/dev/configs/`.
 
 ### Setup master sould server
-Khe-khe
+
+There little bit harder then slave. Master config extends slave config with
+this directives:
+
+- `master` - that flag should be `true`, if server is master. So if you want turn
+    off master mode, you should set `master` value to `false` and give signal to the
+    sould server to reload configuration file, after this server will work in
+    slave mode.
+- `slaves` - this directive contain list of one or more slave servers where
+    replicate request will be propagated to.
+- `timeout` - timeout on all the time for communication with a one slave
+    server. Measures in milliseconds.
+
+Example:
+```
+listen = ":80"
+storage = "/var/sould/"
+master = true
+slaves = ["slave1.local", "slave2.local"]
+timeout = 20000
+```
