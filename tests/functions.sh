@@ -6,7 +6,7 @@
 get_listen_addr() {
     local number=$1
 
-    echo "localhost:"$((60000+$number))
+    echo localhost:$((60000+$number))
 }
 
 # Function 'get_storage' returns storage temporary directory path.
@@ -15,7 +15,7 @@ get_listen_addr() {
 get_storage() {
     local number="$1"
 
-    local directory="$(tests_tmpdir)/storage/$number"
+    local directory=`tests_tmpdir`/storage/$number
 
     tests_do mkdir -p $directory
     tests_assert_success
@@ -57,7 +57,7 @@ get_config_master() {
 
     local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
 
-    local path="$(get_config_slave $listen $storage)"
+    local path=`get_config_slave $listen $storage`
 
     local config="
 master = true
@@ -83,12 +83,12 @@ run_sould() {
         params="$params --unsecure"
     fi
 
-    local listen="$(cat $config | awk '/listen/{print $3}' | sed 's/"//g')"
+    local listen=`cat $config | awk '/listen/{print $3}' | sed 's/"//g'`
 
     tests_debug "running sould server on $listen"
 
-    local bg_id=$(tests_background "$SOULD_BIN $params")
-    local bg_pid=$(tests_background_pid $bg_id)
+    local bg_id=`tests_background "$SOULD_BIN $params"`
+    local bg_pid=`tests_background_pid $bg_id`
 
 
     # 10 seconds
@@ -103,7 +103,7 @@ run_sould() {
             return 1
         fi
 
-        grep -q "$listen" <<< "$(netstat -tl)"
+        grep -q "$listen" <<< "`netstat -tl`"
         local grep_result=$?
         if [ $grep_result -eq 0 ]; then
             break
@@ -133,7 +133,7 @@ request_pull() {
     curl -s -v -X POST \
         -m 10 \
         --data "name=$name&origin=$origin" \
-        "$(get_listen_addr $number)"
+        `get_listen_addr $number`/
 }
 
 # Function 'request_tar' do GET request to a sould server, which should be
@@ -147,7 +147,7 @@ request_tar() {
 
     curl -s -v -X GET \
         -m 10 \
-        "$(get_listen_addr $number)"/$mirror
+        `get_listen_addr $number`/$mirror
 }
 
 # Function 'create_git' creates a git commit in directory with git repository,

@@ -1,18 +1,13 @@
 #!/bin/bash
 #set -x
 
-SOULD_BIN="$(mktemp --suffix .sould)"
+SOULD_BIN="$(readlink -f sould)"
 
 go build -o $SOULD_BIN
 if [ $? -ne 0 ]; then
     echo "can't build project"
     exit 1
 fi
-
-cleanup() {
-    rm -f $SOULD_BIN
-}
-trap cleanup EXIT
 
 source tests/functions.sh
 
