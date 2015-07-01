@@ -134,10 +134,10 @@ storage = "/var/sould/"
 There little bit harder then slave. Master config extends slave config with
 this directives:
 
-- `master` - that flag should be `true`, if server is master. So if you want turn
-    off master mode, you should set `master` value to `false` and give signal to the
-    sould server to reload configuration file, after this server will work in
-    slave mode.
+- `master` - that flag should be `true`, if server is master. So if you want
+    turn off master mode, you should set `master` value to `false` and give
+    signal to the sould server to reload configuration file, after this server
+    will work in slave mode.
 - `slaves` - this directive contain list of one or more slave servers where
     replicate request will be propagated to.
 - `timeout` - timeout on all the time for communication with a one slave
