@@ -149,3 +149,14 @@ master = true
 slaves = ["slave1.local", "slave2.local"]
 timeout = 20000
 ```
+
+Server with given configuration will be a master server, which listen at 80
+port, all replicate requests propagates to `slave1.local` and `slave2.local`,
+and for communication with every slave server will use timeout 20 seconds. As
+storage directory will be used `/var/sould/`.
+
+##### Reloading configuration
+
+sould reload configuration, when catch `SIGHUP` signal, so you can turn any
+slave server to master mode, and, of course, can turn any master server to
+slave server.
