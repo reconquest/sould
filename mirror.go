@@ -139,7 +139,7 @@ func (mirror Mirror) GetModifyDate() (time.Time, error) {
 		}
 
 		newModDate := fileinfo.ModTime()
-		if newModDate.Second() > modDate.Second() {
+		if newModDate.Unix() > modDate.Unix() {
 			modDate = newModDate
 		}
 	}
