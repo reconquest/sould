@@ -13,15 +13,15 @@ type MirrorServer struct {
 	config       zhash.Hash
 	stateTable   MirrorStateTable
 	httpClient   *http.Client
-	unsecureMode bool
+	insecureMode bool
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table MirrorStateTable, unsecureMode bool,
+	config zhash.Hash, table MirrorStateTable, insecureMode bool,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
 		stateTable:   table,
-		unsecureMode: unsecureMode,
+		insecureMode: insecureMode,
 	}
 
 	server.httpClient = &http.Client{
@@ -51,7 +51,9 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 		}
 
 		if len(slaves) == 0 {
-			log.Println("slave servers directive is empty or not defined")
+			log.Println(
+				"WARNING! slave servers directive is empty or not defined",
+			)
 		} else {
 			_, err = config.GetInt("timeout")
 			if err != nil {
@@ -99,10 +101,10 @@ func (server *MirrorServer) GetTimeout() int64 {
 	return timeout
 }
 
-func (server *MirrorServer) GetSlaves() MirrorSlaves {
+func (server *MirrorServer) GetMirrorUpstream() MirrorUpstream {
 	hosts, _ := server.config.GetStringSlice("slaves")
 
-	return NewMirrorSlaves(hosts)
+	return NewMirrorUpstream(hosts)
 }
 
 func (server *MirrorServer) NetDial(

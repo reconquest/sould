@@ -5,82 +5,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"sync"
 )
 
-type (
-	MirrorSlave  string
-	MirrorSlaves []MirrorSlave
-)
+type MirrorSlave string
 
-func NewMirrorSlaves(hosts []string) MirrorSlaves {
-	slaves := MirrorSlaves{}
-	for _, host := range hosts {
-		slaves = append(slaves, MirrorSlave(host))
-	}
-
-	return slaves
-}
-
-func (slaves MirrorSlaves) GetHosts() []string {
-	hosts := []string{}
-	for _, slave := range slaves {
-		hosts = append(hosts, string(slave))
-	}
-
-	return hosts
-}
-
-// 'MirrorSlaves.Pull()' runs and wait workers for all slaves, which do HTTP
-// POST requests
-// returns slice of successfully updated slaves and slice of errors, which
-// can arise via running Pull() for every slave.
-func (slaves MirrorSlaves) Pull(
-	mirrorName string, mirrorOrigin string,
-	httpClient *http.Client,
-) (updatedSlaves MirrorSlaves, errors []error) {
-	var (
-		workers = sync.WaitGroup{}
-
-		pipeErrors  = make(chan error)
-		pipeUpdates = make(chan MirrorSlave)
-	)
-
-	for _, slave := range slaves {
-		go func(slave MirrorSlave) {
-			defer workers.Done()
-
-			// mirrorName, mirrorOrigin and httpClient will be availabled there
-			// by link
-			err := slave.Pull(mirrorName, mirrorOrigin, httpClient)
-			if err != nil {
-				pipeErrors <- err
-			} else {
-				pipeUpdates <- slave
-			}
-		}(slave)
-
-		workers.Add(1)
-	}
-
-	go func() {
-		for err := range pipeErrors {
-			errors = append(errors, err)
-		}
-	}()
-
-	go func() {
-		for slave := range pipeUpdates {
-			updatedSlaves = append(updatedSlaves, slave)
-		}
-	}()
-
-	workers.Wait()
-
-	return updatedSlaves, errors
-}
-
-// 'MirrorSlave.Pull()' do HTTP POST request to slave with mirror name and
+// Pull do HTTP POST request to slave with mirror name and
 // origin
 func (slave MirrorSlave) Pull(
 	mirrorName string, mirrorOrigin string,
@@ -120,14 +49,12 @@ func (slave MirrorSlave) Pull(
 
 		if string(body) == "" {
 			err = fmt.Errorf(
-				"%s, response body is empty",
-				statusError,
+				"%s, response body is empty", statusError,
 			)
 
 		} else {
 			err = fmt.Errorf(
-				"%s, response body: %s",
-				statusError, string(body),
+				"%s, response body: %s", statusError, string(body),
 			)
 		}
 

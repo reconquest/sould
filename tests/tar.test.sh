@@ -8,7 +8,7 @@ config=`get_config_slave $addr $storage`
 
 tests_do run_sould "$config" true
 tests_assert_success
-sould_bid=$(cat `tests_stdout`)
+sould_job_id=$(cat `tests_stdout`)
 
 tests_do create_repository "upstream"
 tests_assert_success
@@ -29,7 +29,7 @@ tests_assert_stderr_re "200 OK"
 tests_assert_stderr_re "X-State: success"
 tests_assert_stderr_re "X-Date:"
 
-modify_date="$(grep "X-Date:" `tests_stderr`)"
+modify_date_header="$(grep "X-Date:" `tests_stderr`)"
 
 tests_do tar -xlvf `tests_tmpdir`/archive.tar
 tests_assert_success
@@ -43,7 +43,7 @@ tests_assert_success
 tests_do request_tar 0 $mirror_name ">" `tests_tmpdir`/archive2.tar
 tests_assert_stderr_re "200 OK"
 tests_assert_stderr_re "X-State: success"
-tests_assert_stderr_re "$modify_date"
+tests_assert_stderr_re "$modify_date_header"
 
 tests_do tar -xlvf `tests_tmpdir`/archive2.tar
 tests_assert_success
@@ -55,7 +55,7 @@ tests_assert_stdout_re 'file_foo'
 # archive of last available version and show header 'X-Date' with last
 # successfull update date.
 
-tests_stop_background $sould_bid
+tests_stop_background $sould_job_id
 
 tests_do run_sould "$config" true
 tests_assert_success
@@ -63,7 +63,7 @@ tests_assert_success
 tests_do request_tar 0 $mirror_name ">" `tests_tmpdir`/archive3.tar
 tests_assert_stderr_re "200 OK"
 tests_assert_stderr_re "X-State: failed"
-tests_assert_stderr_re "$modify_date"
+tests_assert_stderr_re "$modify_date_header"
 
 tests_do tar -xlvf `tests_tmpdir`/archive3.tar
 tests_assert_success

@@ -73,14 +73,14 @@ slaves = [$slaves]
 # Returns unique background work identifier.
 # Args:
 #    $1 - configuration file
-#    $2 - unsecure mode (boolean value)
+#    $2 - insecure mode (boolean value)
 run_sould() {
     local config="$1"
-    local unsecure=$2
+    local insecure=$2
 
     local params="-c $1"
-    if $unsecure; then
-        params="$params --unsecure"
+    if $insecure; then
+        params="$params --insecure"
     fi
 
     local listen=`cat $config | awk '/listen/{print $3}' | sed 's/"//g'`

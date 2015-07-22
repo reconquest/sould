@@ -45,7 +45,7 @@ func (server *MirrorServer) handlePOST(
 	var (
 		responseMessages []string
 
-		hadCreateMirror     bool
+		hadToCreateMirror   bool
 		pullFailed          bool
 		forwardingFailed    bool
 		forwardingFailedAll bool
@@ -63,21 +63,21 @@ func (server *MirrorServer) handlePOST(
 		mirrorName, mirrorOrigin,
 	)
 
-	if !server.unsecureMode && !isURL(mirrorOrigin) {
+	if !server.insecureMode && !isURL(mirrorOrigin) {
 		message := "mirror origin should be URL"
 		log.Printf("%s, url is '%s'", message, mirrorOrigin)
 		http.Error(response, message, http.StatusForbidden)
 		return
 	}
 
-	mirror, hadCreateMirror, err := server.GetMirror(mirrorName, mirrorOrigin)
+	mirror, hadToCreateMirror, err := server.GetMirror(mirrorName, mirrorOrigin)
 	if err != nil {
 		log.Println(err)
 		http.Error(response, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if hadCreateMirror {
+	if hadToCreateMirror {
 		log.Printf(
 			"mirror '%s' successfully created",
 			mirrorName,
@@ -106,7 +106,7 @@ func (server *MirrorServer) handlePOST(
 	// tolerant and try to forward request to slaves
 
 	if server.IsMaster() {
-		slaves := server.GetSlaves()
+		slaves := server.GetMirrorUpstream()
 		if len(slaves) > 0 {
 			updatedSlaves, errors := slaves.Pull(
 				mirrorName, mirrorOrigin, server.httpClient,
@@ -145,7 +145,7 @@ func (server *MirrorServer) handlePOST(
 	case pullFailed:
 		status = http.StatusInternalServerError
 
-	case hadCreateMirror:
+	case hadToCreateMirror:
 		status = http.StatusCreated
 
 	default:
@@ -246,7 +246,7 @@ func (server MirrorServer) handleGET(
 // not, then will try to create mirror with passed arguments.
 func (server MirrorServer) GetMirror(
 	name string, origin string,
-) (mirror Mirror, hadCreate bool, err error) {
+) (mirror Mirror, hasBeenCreated bool, err error) {
 	mirror, err = GetMirror(server.GetStorageDir(), name)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -259,7 +259,7 @@ func (server MirrorServer) GetMirror(
 			server.GetStorageDir(), name, origin,
 		)
 		if err != nil {
-			// hadCreate variable should be false, because creating is failed.
+			// hasBeenCreated variable should be false, because creating is failed.
 			return Mirror{}, false, fmt.Errorf(
 				"can't create mirror '%s': %s", name, err.Error(),
 			)

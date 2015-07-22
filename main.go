@@ -14,12 +14,12 @@ import (
 const usage = `Sould 1.0
 
 Usage:
-	sould [-c <config>] [--unsecure]
+	sould [-c <config>] [--insecure]
 
 Options:
     -c <config>  Use specified file as config file.
                  [default: /etc/sould.conf]
-	--unsecure   Allow create mirrors of local repositories.
+    --insecure   Allow create mirrors of local repositories.
 `
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 
 	var (
 		configPath   = args["-c"].(string)
-		unsecureMode = args["--unsecure"].(bool)
+		insecureMode = args["--insecure"].(bool)
 	)
 
 	config, err := getConfig(configPath)
@@ -38,19 +38,21 @@ func main() {
 		log.Fatalf("can't load config: %s", err.Error())
 	}
 
-	if unsecureMode {
+	if insecureMode {
 		log.Printf(
-			"WARNING! Sould server running in unsecure mode. " +
-				"In this mode sould can create mirror to local repositories.",
+			"WARNING! Sould server running in insecure mode. " +
+				"In this mode sould will be able to give access to ANY local " +
+				"repository readable by sould process. " +
+				"It's inteded for tests only, so use with care.",
 		)
 	}
 
-	server, err := NewMirrorServer(config, MirrorStateTable{}, unsecureMode)
+	server, err := NewMirrorServer(config, MirrorStateTable{}, insecureMode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go waitHangupSignals(server, configPath)
+	go serveHangupSignals(server, configPath)
 
 	err = server.ListenHTTP()
 	if err != nil {
@@ -71,8 +73,8 @@ func getConfig(path string) (zhash.Hash, error) {
 
 func reloadConfig(
 	server *MirrorServer, configPath string,
-) (becomeMaster bool, becomeSlave bool, err error) {
-	isMasterBeforeReload := server.IsMaster()
+) (becameMaster bool, becameSlave bool, err error) {
+	wasMaster := server.IsMaster()
 
 	newConfig, err := getConfig(configPath)
 	if err != nil {
@@ -84,32 +86,28 @@ func reloadConfig(
 		return false, false, err
 	}
 
-	switch {
-	case server.IsMaster() && !isMasterBeforeReload:
-		return true, false, nil
-
-	case !server.IsMaster() && isMasterBeforeReload:
-		return false, true, nil
+	if server.IsMaster() == wasMaster {
+		return false, false, nil
 	}
 
-	return false, false, nil
+	return server.IsMaster(), wasMaster, nil
 }
 
-// waits for SIGHUP  and try to reload config
-func waitHangupSignals(server *MirrorServer, configPath string) {
+// waits for SIGHUP and try to reload config
+func serveHangupSignals(server *MirrorServer, configPath string) {
 	hangup := make(chan os.Signal, 1)
 	signal.Notify(hangup, syscall.SIGHUP)
 
 	for _ = range hangup {
-		becomeMaster, becomeSlave, err := reloadConfig(server, configPath)
+		becameMaster, becameSlave, err := reloadConfig(server, configPath)
 		switch {
 		case err != nil:
 			log.Printf("can't reload config: %s", err.Error())
 
-		case becomeMaster:
+		case becameMaster:
 			log.Println("current sould server is now master")
 
-		case becomeSlave:
+		case becameSlave:
 			log.Println("current sould server is now slave")
 
 		default:
