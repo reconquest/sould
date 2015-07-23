@@ -2,87 +2,92 @@
 
 **sould** is the scalable failover service for mirroring git repositories.
 
-It is very convenient when you use some, for example, config templates in git
-repositories and wants get access to your files at any time.
+It can be very useful if you store your files in the git repositories and want
+to get access to them at any time.
 
-But how sould creates a mirrors for my repositories? Good question, my friend.
+But how sould creates a mirrors for repositories? Let me explain this.
 
-For first, sould nothing knows about your repositories and you should talk him
-about it. And all he needs it is mirror name and clone url (origin).
+At first, sould knows nothing about your repositories, so you should talk him
+about it. All it needs are the mirror name and clone url (the origin).
 
-For communication sould uses the HTTP REST-like interface, and implements two
-methods - `POST` and `GET`.
+Sould uses the HTTP REST-like interface for communication, and implements two
+methods: `POST` and `GET`.
 
 ## API
 
 ### POST
-On this request sould server will fetch all repository changes. If server works
-in master server, then request will be propagated to all known slaves. In
-communication with slaves, master mode uses a parallel threads.
+On this request sould server will fetch all repository changes. If the server
+works in master mode, then request will be propagated to all known slaves.
+Master server uses parallel threads while communicating with slaves.
 
 Basic response statuses:
-- `201 Created` - this status returns when sould does not know about this
-repository, and he had create new mirror.
-- `200 OK` - everything is okay, all changes has been replicated.
-- `500 Internal Server Error` - this status returns when sould server have some
-    internal problems, i.e could not write to storage directory, or could not
-    pull repository changeset.
+- `201 Created` - this status is returned when sould doesn't know about this
+    repository and it had to create new mirror.
+- `200 OK` - everything is okay, all changes were just replicated.
+- `500 Internal Server Error` - this status is returned when sould server have
+     some internal problems, i.e couldn't write to storage directory, or could
+     not pull repository changeset.
 
 Master server response statuses:
 - `502 Bad Gateway` - one or more slave servers returned error statuses.
-- `503 Service Unavailable` - this is fatal error, which can be occured only
-    when all sould (including master) servers could not pull repository
-    changeset or returns report about internal server errors.
+- `503 Service Unavailable` - this is fatal error, which can occur only
+    when sould servers (including master one) couldn't pull the repository
+    changes or returns repored reports about their internal server errors.
 
-**sould** server always reports about all occured errors to stderr and to http
+**sould** server always reports about all occured errors to the stderr and http
 output, so if master server gets error report from slave server, he will log
-all reports and forward it to the end user's http output.
+all reports and forward it to the end user via http response.
 
 ### GET
-On this request sould server will create a tar archive with content of latest
-revision.
+On this request sould server will create a tar archive with content of the
+latest revision.
 
 Error statuses:
 - `500 Internal Server Error` - this status can be returned only when sould
-     have a some internal problems, i.e. failed for reading mirror directory.
-     Error details also should be written to http output.
-- `404 Not Found` - sould server does not known about requested mirror.
+     have some internal problems, i.e. failed while reading mirror directory.
+     Error details also will be written to http response.
+- `404 Not Found` - sould server didn't known about specified mirror.
 
-**sould** will try to pull repository changes on this request in a few cases:
+**sould** will try to pull repository changes on this request in the next
+cases:
 - *last pull has been failed*
 
-    Practice example. Client makes push to origin repository, push-receive hook
-    sends update request to sould master server. And if master server, at this
-    moment, could not connect to origin repository, he remember it, and when
-    some client will try to get a tar archive, sould will try to make a pull.
+    I'll give an example: a client just made push to the origin repository. The
+    push-receive hooks sends update request to  the sould master server. If, at
+    this moment, the master server, can't connect to the origin repository,
+    it'll remember that, and when some client will try to get a tar archive,
+    would will try to make a pull.
 
 - *sould has been restarted*
 
-    Anything can happen. But if sould does not pull changes already to this
-    mirror (mirror directory can be just copied to storage directory), then he
-    will try to make a pull request.
+    Anything can happen. But if sould hasn't never pull changes to this mirror
+    (mirror directory can be just copied to storage directory), then he will
+    try to make a pull request.
 
 **sould** also always sends http headers:
 
-- `X-State` - that header shows the latest pull status. It can be `success` or
+- `X-State` - this header contains the latest pull status. It can be either `success` or
     `failed`.
 
 - `X-Date` - date of latest successfully mirror update.
 
 ## Usage
 
-I want tell you story about my imaginary friend Jack. Jack is engineer, how you
-can guess.
+I'' tell you a story about my imaginary friend Jack. Jack is software
+engineer, as you can guess.
 
-Jack have a git repository with templates for configs for some soft in the
-repository `https://git.in.local/jack/gunter-configs` and Jack know,
-`git.in.local` - it is the point of failure, because if `git.in.local` put
-down, all of Jack containers will not be able to get the configs, so all Jack
-infrastructure will be put down, and Jack will be put down, and Jack's soul
-will be put down.
+Jack has a git repository which stores templates of configuration files for
+some software. The URL of this repository is
+`https://git.in.local/jack/gunter-configs`. Suppose that this configuration
+files must be rendered from their templates very frequently, i.e. once a
+minute. So, server `git.in.local` which serving Jack's repository is the point
+of failure.  Because if it goes down, all Jack's templates will be missed, so
+Jack's software will be unworkable, so Jack's infrastructure depending on this
+software will also go down, and Jack himself will be go down by it's boss, and
+maybe Jack's soul will also be go down, far below ground.
 
-So, Jack should create a failover cluster of mirrors to him repository, for
-that he should do:
+So, what Jack (and anyone) should do to avoid this? He should create a failover
+cluster of mirrors of his single repository. That means to do:
 
 1. [Setup post-receive hook in repository at `git.in.local`.](#setup-post-receive-hook)
 2. [Setup slave sould servers.](#setup-slave-sould-servers)
@@ -90,10 +95,11 @@ that he should do:
 
 ### Setup post-receive hook
 
-You should create a post-receive hook which will send mirror name and clone
-url to sould server.
+To tell the sould server to pull a changes Jack (or anyone) should create the
+post-receive hook which will send mirror name and clone url to sould server on
+every push event.
 
-Generally, hook should look like this:
+Generally, this hook should looks like this:
 
 ```bash
 #!/bin/sh
@@ -108,13 +114,13 @@ echo "sending data to sould server $SOULD"
 exec curl --data "name=$NAME&origin=$ORIGIN" -m "$TIMEOUT" $SOULD
 ```
 
-and should locates in `hooks/post-receive` your bare repository.
+and should be placed inside `hooks/post-receive` on Jack's git server.
 
 [Read more about git hooks technology](https://raw.githubusercontent.com/git/git/master/Documentation/githooks.txt)
 
 ### Setup slave sould servers
 
-Prepare to flight, because sould is easy in configuration, basic config look
+Prepare to flight, because sould is easy in configuration. Basic config looks
 like this:
 
 ```
@@ -122,26 +128,29 @@ listen = ":80"
 storage = "/var/sould/"
 ```
 
-- `listen` directive talks about what address sould should listen to.
+- `listen` directive is used to set network address which sould should listen.
 
-- `storage` directive is a path to directory, which will be used as a root
- directory for all new mirrors, so if you wants create a mirror with name
- `dev/configs`, sould will create a *bare* repository in
- `/var/sould/dev/configs/`.
+- `storage` directive is used to set path to root directory for all new
+    mirrors, So, in this example, when your create a mirror with the name
+    `dev/configs`, sould will create the repository in
+    `/var/sould/dev/configs/`.
 
 ### Setup master sould server
 
-There little bit harder then slave. Master config extends slave config with
-this directives:
+It's a little bit harder than slave. Master config is based on the slave one
+and extends it with this directives:
 
-- `master` - that flag should be `true`, if server is master. So if you want
-    turn off master mode, you should set `master` value to `false` and give
-    signal to the sould server to reload configuration file, after this server
-    will work in slave mode.
+- `master` - set `true` for master server and `false` for slave.
+
+    So if you want turn off master mode, you should set `master` value to
+    `false` and give signal to the sould server to reload configuration file,
+    after this server will work in slave mode.
+
 - `slaves` - this directive contain list of one or more slave servers where
     replicate request will be propagated to.
-- `timeout` - timeout on all the time for communication with a one slave
-    server. Measures in milliseconds.
+
+- `timeout` - timeout on the whole time for communication with a single slave
+    server. Base unit is millisecond.
 
 Example:
 ```
@@ -152,16 +161,16 @@ slaves = ["slave1.local", "slave2.local"]
 timeout = 20000
 ```
 
-Server with given configuration will be a master server, which listen at 80
-port, all replicate requests propagates to `slave1.local` and `slave2.local`,
-and for communication with every slave server will use timeout 20 seconds. As
-storage directory will be used `/var/sould/`.
+A server with that configuration will be the master server, which listens at 80
+port. All requests it will propagate to the servers `slave1.local` and
+`slave2.local`, and it will use timeout in 20 seconds for communication with
+each of them. `/var/sould`/ will be used as the storage directory.
 
 ##### Reloading configuration
 
-**sould** reload configuration, when catch `SIGHUP` signal, so you can turn any
-slave server to master mode, and, of course, can turn any master server to
-slave server.
+**sould** will reload configuration if it catches `SIGHUP` signal, so you can
+turn any slave server to master mode, and, of course, can turn any master
+server to slave server.
 
 ## Running
 
