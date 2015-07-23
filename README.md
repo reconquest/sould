@@ -26,7 +26,7 @@ Basic response statuses:
 - `200 OK` - everything is okay, all changes were just replicated.
 - `500 Internal Server Error` - this status is returned when sould server have
      some internal problems, i.e couldn't write to storage directory, or could
-     not pull repository changeset.
+     not pull repository changes.
 
 Master server response statuses:
 - `502 Bad Gateway` - one or more slave servers returned error statuses.
@@ -35,7 +35,7 @@ Master server response statuses:
     changes or returns repored reports about their internal server errors.
 
 **sould** server always reports about all occured errors to the stderr and http
-output, so if master server gets error report from slave server, he will log
+response, so if master server gets error report from slave server, he will log
 all reports and forward it to the end user via http response.
 
 ### GET
@@ -45,8 +45,8 @@ latest revision.
 Error statuses:
 - `500 Internal Server Error` - this status can be returned only when sould
      have some internal problems, i.e. failed while reading mirror directory.
-     Error details also will be written to http response.
-- `404 Not Found` - sould server didn't known about specified mirror.
+     Error details will also be written to the http response.
+- `404 Not Found` - sould server didn't know about specified mirror.
 
 **sould** will try to pull repository changes on this request in the next
 cases:
@@ -55,19 +55,19 @@ cases:
     I'll give an example: a client just made push to the origin repository. The
     push-receive hooks sends update request to  the sould master server. If, at
     this moment, the master server, can't connect to the origin repository,
-    it'll remember that, and when some client will try to get a tar archive,
-    would will try to make a pull.
+    it'll remember that, and later, when some client tries to get a tar
+    archive, the sould server will try to make a pull again.
 
 - *sould has been restarted*
 
     Anything can happen. But if sould hasn't never pull changes to this mirror
-    (mirror directory can be just copied to storage directory), then he will
-    try to make a pull request.
+    (mirror directory can be just copied to storage directory), then it will
+    try to make a pull again.
 
 **sould** also always sends http headers:
 
-- `X-State` - this header contains the latest pull status. It can be either `success` or
-    `failed`.
+- `X-State` - this header contains the latest pull status. It can be either
+    `success` or `failed`.
 
 - `X-Date` - date of latest successfully mirror update.
 
