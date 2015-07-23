@@ -145,9 +145,14 @@ request_tar() {
     local number="$1"
     local mirror="$2"
 
+    local query=""
+    if [ $# -gt 2 ]; then
+        query="?ref=$3"
+    fi
+
     curl -s -v -X GET \
         -m 10 \
-        `get_listen_addr $number`/$mirror
+        `get_listen_addr $number`/$mirror$query
 }
 
 # Function 'create_git' creates a git commit in directory with git repository,

@@ -71,8 +71,10 @@ func GetMirror(
 	return mirror, nil
 }
 
-func (mirror Mirror) GetArchive() ([]byte, error) {
-	return mirror.execute(exec.Command("git", "archive", "HEAD"))
+func (mirror Mirror) GetArchive(tree string) ([]byte, error) {
+	// arguments like --remote and --exit can not be passed, because variable
+	// tree will be passed as one argument
+	return mirror.execute(exec.Command("git", "archive", tree))
 }
 
 func (mirror Mirror) Pull() error {

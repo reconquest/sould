@@ -52,7 +52,7 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 
 		if len(slaves) == 0 {
 			log.Println(
-				"WARNING! slave servers directive is empty or not defined",
+				"WARNING! Slave servers directive is empty or not defined",
 			)
 		} else {
 			_, err = config.GetInt("timeout")

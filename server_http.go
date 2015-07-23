@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -158,7 +159,12 @@ func (server *MirrorServer) handlePOST(
 func (server MirrorServer) handleGET(
 	response http.ResponseWriter, request *http.Request,
 ) {
-	mirrorName := strings.Trim(request.RequestURI, "/")
+	mirrorName := strings.Trim(request.URL.Path, "/")
+
+	reference := request.URL.Query().Get("ref")
+	if reference == "" {
+		reference = "master"
+	}
 
 	mirror, err := GetMirror(server.GetStorageDir(), mirrorName)
 	if err != nil {
@@ -217,7 +223,7 @@ func (server MirrorServer) handleGET(
 	response.Header().Set("X-State", mirrorState.String())
 	response.Header().Set("X-Date", modifyDate.UTC().Format(http.TimeFormat))
 
-	archive, err := mirror.GetArchive()
+	archive, err := mirror.GetArchive(reference)
 	if err != nil {
 		log.Printf(
 			"can't get tar archive of '%s' mirror: %s",
@@ -255,9 +261,7 @@ func (server MirrorServer) GetMirror(
 			)
 		}
 
-		mirror, err = CreateMirror(
-			server.GetStorageDir(), name, origin,
-		)
+		mirror, err = CreateMirror(server.GetStorageDir(), name, origin)
 		if err != nil {
 			// hasBeenCreated variable should be false, because creating is failed.
 			return Mirror{}, false, fmt.Errorf(
@@ -309,8 +313,13 @@ func getMirrorParams(
 }
 
 func isURL(str string) bool {
+	_, err := url.Parse(str)
+	if err != nil {
+		return false
+	}
+
 	var prefixes = []string{
-		"ssh://", "https://", "http://",
+		"ssh://", "https://", "http://", "git://",
 	}
 
 	for _, prefix := range prefixes {
