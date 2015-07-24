@@ -32,7 +32,7 @@ Master server response statuses:
 - `502 Bad Gateway` - one or more slave servers returned error statuses.
 - `503 Service Unavailable` - this is fatal error, which can occur only
     when sould servers (including master one) couldn't pull the repository
-    changes or returns repored reports about their internal server errors.
+    changes or returns reports about their internal server errors.
 
 **sould** server always reports about all occured errors to the stderr and http
 response, so if master server gets error report from slave server, he will log
@@ -73,7 +73,7 @@ cases:
 
 ## Usage
 
-I'' tell you a story about my imaginary friend Jack. Jack is software
+I'll tell you a story about my imaginary friend Jack. Jack is software
 engineer, as you can guess.
 
 Jack has a git repository which stores templates of configuration files for
