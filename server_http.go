@@ -166,6 +166,11 @@ func (server MirrorServer) handleGET(
 		reference = "master"
 	}
 
+	log.Printf(
+		"got get tar archive request for mirror '%s', ref '%s'",
+		mirrorName, reference,
+	)
+
 	mirror, err := GetMirror(server.GetStorageDir(), mirrorName)
 	if err != nil {
 		var status int
