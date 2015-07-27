@@ -54,7 +54,7 @@ func (server *MirrorServer) handlePOST(
 
 	mirrorName, mirrorOrigin, err := getMirrorParams(request)
 	if err != nil {
-		log.Println("%s, got http form: %#v", err, request.Form)
+		log.Printf("%s, got http form: %#v", err, request.Form)
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
