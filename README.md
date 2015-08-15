@@ -1,5 +1,7 @@
 # sould
 
+![soul stone](https://cloud.githubusercontent.com/assets/8445924/9289433/29a8d22c-435f-11e5-9be8-294c41670873.png)
+
 **sould** is the scalable failover service for mirroring git repositories.
 
 It can be very useful if you store your files in the git repositories and want
