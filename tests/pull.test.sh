@@ -21,21 +21,16 @@ storage_master="`get_storage $master`"
 config_master="`get_config_master $addr_master $storage_master 3000 $slaves`"
 
 # run all servers
-tests_do run_sould $config_slave_pa true
-tests_assert_success
+tests_ensure run_sould $config_slave_pa true
 
-tests_do run_sould $config_slave_re true
-tests_assert_success
+tests_ensure run_sould $config_slave_re true
 
-tests_do run_sould $config_master true
-tests_assert_success
+tests_ensure run_sould $config_master true
 
 # create upstream git repository with one commit
-tests_do create_repository "upstream"
-tests_assert_success
+tests_ensure create_repository "upstream"
 
-tests_do create_commit "upstream" "foo"
-tests_assert_success
+tests_ensure create_commit "upstream" "foo"
 
 mirror_name="mirror/for/upstream"
 
@@ -53,16 +48,14 @@ for storage in $storages; do
     tests_test -d $mirror_dir
 
     tests_cd $mirror_dir
-    tests_do git log
-    tests_assert_success
+    tests_ensure git log
     tests_assert_stdout_re "test-foo-commit"
 done
 
 tests_tmp_cd upstream
 tests_assert_success
 
-tests_do create_commit "upstream" "bar"
-tests_assert_success
+tests_ensure create_commit "upstream" "bar"
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 tests_assert_stderr_re '200 OK'
@@ -77,11 +70,9 @@ for storage in $storages; do
 done
 
 # corrupting 'pa' slave storage
-tests_do mv $storage_slave_pa `tests_tmpdir`/backup_storage_pa
-tests_assert_success
+tests_ensure mv $storage_slave_pa `tests_tmpdir`/backup_storage_pa
 
-tests_do ln -sf /dev/null $storage_slave_pa
-tests_assert_success
+tests_ensure ln -sf /dev/null $storage_slave_pa
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 tests_assert_stderr_re '502 Bad Gateway'
@@ -90,8 +81,7 @@ tests_assert_stdout_re "http status is '500 Internal Server Error'"
 tests_assert_stdout_re "$storage_slave_pa/$mirror_name: not a directory"
 
 # corrupting upstream
-tests_do mv `tests_tmpdir`/upstream `tests_tmpdir`/backup_upstream
-tests_assert_success
+tests_ensure mv `tests_tmpdir`/upstream `tests_tmpdir`/backup_upstream
 
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 # master should show all messages, which returned by slaves
@@ -101,13 +91,10 @@ tests_assert_stdout_re "slave '$addr_slave_re'.*500 Internal Server Error"
 tests_assert_stdout_re "$storage_slave_pa/$mirror_name: not a directory"
 
 #restoring sould upstream and storage_pa directory
-tests_do mv `tests_tmpdir`/backup_upstream `tests_tmpdir`/upstream
-tests_assert_success
+tests_ensure mv `tests_tmpdir`/backup_upstream `tests_tmpdir`/upstream
 
-tests_do rm -f $storage_slave_pa
-tests_assert_success
-tests_do mv `tests_tmpdir`/backup_storage_pa $storage_slave_pa
-tests_assert_success
+tests_ensure rm -f $storage_slave_pa
+tests_ensure mv `tests_tmpdir`/backup_storage_pa $storage_slave_pa
 
 # does cluster restored?
 tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream

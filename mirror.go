@@ -83,6 +83,22 @@ func (mirror Mirror) Pull() error {
 	return err
 }
 
+func (mirror Mirror) SpoofBranchTag(branch, tag string) error {
+	_, err := mirror.execute(
+		exec.Command("git", "branch", "--force", branch, tag),
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = mirror.execute(exec.Command("git", "tag", "-d", tag))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (mirror Mirror) execute(command *exec.Cmd) ([]byte, error) {
 	command.Dir = mirror.Dir
 

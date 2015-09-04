@@ -85,7 +85,7 @@ run_sould() {
 
     local listen=`cat $config | awk '/listen/{print $3}' | sed 's/"//g'`
 
-    tests_debug "running sould server on $listen"
+    tests_debug "running sould server on $listen with config:$(cat $config)"
 
     local bg_id=`tests_background "$SOULD_BIN $params"`
     local bg_pid=`tests_background_pid $bg_id`
@@ -136,6 +136,27 @@ request_pull() {
         `get_listen_addr $number`/
 }
 
+# Function 'requests_pull_spoof' do POST request with spoof parameters to a
+# sould server, which should be specified by number.
+# Args:
+#    $1 - sould server number
+#    $2 - mirror name
+#    $3 - mirror origin (clone url)
+#    $4 - branch
+#    $5 - tag
+request_pull_spoof() {
+    local number="$1"
+    local name="$2"
+    local origin="$3"
+    local branch="$4"
+    local tag="$5"
+
+    curl -s -v -X POST \
+        -m 10 \
+        --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
+        `get_listen_addr $number`/
+}
+
 # Function 'request_tar' do GET request to a sould server, which should be
 # specified by number, tar archive content will be available in stdout.
 # Args:
@@ -167,12 +188,9 @@ create_commit() {
     local file="$2"
 
     tests_tmp_cd $repository
-    tests_do touch $file
-    tests_assert_success
-    tests_do git add $file
-    tests_assert_success
-    tests_do git commit -m test-$file-commit
-    tests_assert_success
+    tests_ensure touch $file
+    tests_ensure git add $file
+    tests_ensure git commit -m test-$file-commit
 }
 
 # Function 'create_repository' creates a git repository in temporary test
@@ -185,6 +203,5 @@ create_repository() {
     tests_mkdir $name
     tests_tmp_cd $name
 
-    tests_do git init
-    tests_assert_success
+    tests_ensure git init
 }

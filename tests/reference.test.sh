@@ -12,8 +12,7 @@ tests_ensure run_sould "$config" true
 
 tests_ensure create_repository "upstream"
 
-tests_do create_commit "upstream" "file_foo"
-tests_assert_success
+tests_ensure create_commit "upstream" "file_foo"
 
 tests_tmp_cd "upstream"
 commit_foo="$(git rev-parse HEAD)"

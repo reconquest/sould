@@ -12,8 +12,7 @@ config="`get_config_slave $addr $storage`"
 
 sleep_max=10
 
-tests_do run_sould "$config" true
-tests_assert_success
+tests_ensure run_sould "$config" true
 
 job_id=$(cat `tests_stdout`)
 pid=`tests_background_pid $job_id`
@@ -22,7 +21,7 @@ stderr="`tests_background_stderr $job_id`"
 tests_wait_file_changes sighup $stderr 0.1 10
 tests_assert_re "$stderr" "reloaded"
 
-rm -rf $config
+tests_do rm -rf $config
 
 tests_wait_file_changes sighup $stderr 0.1 10
 
