@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -47,19 +48,21 @@ func main() {
 		)
 	}
 
-	server, err := NewMirrorServer(config, MirrorStateTable{}, insecureMode)
+	mirrorStateTable := NewMirrorStateTable()
+
+	server, err := NewMirrorServer(config, mirrorStateTable, insecureMode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go serveHangupSignals(server, configPath)
-
-	proxy, err := NewGitProxy("asgard:9418", "asgard:9419")
+	proxy, err := NewGitProxy(config, mirrorStateTable)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	proxy.RunLoop()
+	go serveHangupSignals(server, proxy, configPath)
+
+	proxy.Start()
 
 	err = server.ListenHTTP()
 	if err != nil {
@@ -79,7 +82,7 @@ func getConfig(path string) (zhash.Hash, error) {
 }
 
 func reloadConfig(
-	server *MirrorServer, configPath string,
+	server *MirrorServer, proxy *GitProxy, configPath string,
 ) (becameMaster bool, becameSlave bool, err error) {
 	wasMaster := server.IsMaster()
 
@@ -90,23 +93,36 @@ func reloadConfig(
 
 	err = server.SetConfig(newConfig)
 	if err != nil {
-		return false, false, err
+		return false, false, fmt.Errorf(
+			"can't set config for http server: %s", err,
+		)
 	}
 
 	if server.IsMaster() == wasMaster {
 		return false, false, nil
 	}
 
+	err = proxy.SetConfig(newConfig)
+	if err != nil {
+		return false, false, fmt.Errorf(
+			"can't set config for git daemon proxy: %s", err,
+		)
+	}
+
 	return server.IsMaster(), wasMaster, nil
 }
 
 // waits for SIGHUP and try to reload config
-func serveHangupSignals(server *MirrorServer, configPath string) {
+func serveHangupSignals(
+	server *MirrorServer, proxy *GitProxy, configPath string,
+) {
 	hangup := make(chan os.Signal, 1)
 	signal.Notify(hangup, syscall.SIGHUP)
 
 	for _ = range hangup {
-		becameMaster, becameSlave, err := reloadConfig(server, configPath)
+		becameMaster, becameSlave, err := reloadConfig(
+			server, proxy, configPath,
+		)
 		switch {
 		case err != nil:
 			log.Printf("can't reload config: %s", err.Error())
