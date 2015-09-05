@@ -91,7 +91,7 @@ func (server *MirrorServer) GetStorageDir() string {
 }
 
 func (server *MirrorServer) GetListenAddress() string {
-	address, _ := server.config.GetString("listen")
+	address, _ := server.config.GetString("http", "listen")
 
 	return address
 }

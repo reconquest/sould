@@ -62,11 +62,14 @@ func main() {
 
 	go serveHangupSignals(server, proxy, configPath)
 
-	proxy.Start()
+	err = proxy.Start()
+	if err != nil {
+		log.Fatalf("failed to start git daemon proxy: %s", err)
+	}
 
 	err = server.ListenHTTP()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to start http server: %s", err)
 	}
 }
 

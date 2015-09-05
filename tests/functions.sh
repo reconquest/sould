@@ -31,15 +31,20 @@ get_storage() {
 get_config_slave() {
     local listen="$1"
     local storage="$2"
+    local git_listen=${3:-localhost:$((10000+$RANDOM))}
 
     local path="$storage/.config"
 
     local config="
-listen = \"$listen\"
 storage = \"$storage\"
+[http]
+listen = \"$listen\"
+[git]
+listen = \"$git_listen\"
+daemon = \"localhost:9419\"
 "
 
-    echo "$config" > "$path"
+    echo "$config" >> "$path"
     echo "$path"
 }
 
@@ -55,9 +60,9 @@ get_config_master() {
     local timeout="$3"
     shift 3
 
-    local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
+    local path="$storage/.config"
 
-    local path=`get_config_slave $listen $storage`
+    local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
 
     local config="
 master = true
@@ -66,7 +71,8 @@ slaves = [$slaves]
 "
 
     echo "$config" >> "$path"
-    echo "$path"
+
+    get_config_slave $listen $storage
 }
 
 # Function 'run_sould' starts background work for sould with specified config.
@@ -88,6 +94,9 @@ run_sould() {
     tests_debug "running sould server on $listen with config:$(cat $config)"
 
     local bg_id=`tests_background "$SOULD_BIN $params"`
+    if [[ "$bg_id" == "" ]]; then
+        return 1
+    fi
     local bg_pid=`tests_background_pid $bg_id`
 
 

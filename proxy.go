@@ -19,17 +19,10 @@ type GitProxy struct {
 func NewGitProxy(
 	config zhash.Hash, mirrorStateTable *MirrorStateTable,
 ) (*GitProxy, error) {
-	var err error
-
 	proxy := &GitProxy{}
 	proxy.SetConfig(config)
 
 	proxy.mirrorStateTable = mirrorStateTable
-
-	proxy.listener, err = net.ListenTCP("tcp", proxy.listenAddr)
-	if err != nil {
-		return nil, err
-	}
 
 	return proxy, nil
 }
@@ -67,8 +60,16 @@ func (proxy *GitProxy) SetConfig(config zhash.Hash) error {
 	return nil
 }
 
-func (proxy *GitProxy) Start() {
+func (proxy *GitProxy) Start() error {
+	var err error
+	proxy.listener, err = net.ListenTCP("tcp", proxy.listenAddr)
+	if err != nil {
+		return err
+	}
+
 	go proxy.loop()
+
+	return nil
 }
 
 func (proxy *GitProxy) Stop() {
@@ -79,7 +80,7 @@ func (proxy *GitProxy) loop() {
 	for {
 		tcpConn, err := proxy.listener.AcceptTCP()
 		if err != nil {
-			log.Println(err)
+			log.Println("proxy connection accept failed: %s", err)
 			break
 		}
 
