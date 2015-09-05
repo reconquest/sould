@@ -46,13 +46,13 @@ func (connection *GitProxyConnection) Serve() {
 
 	err = connection.parseRequest(buffer)
 	if err != nil {
-		connection.logf("can't parse request: %s, refusing connection", err)
+		connection.logf("can't parse request: %s", err)
 		return
 	}
 
 	err = connection.validateMirror()
 	if err != nil {
-		connection.logf("can't validate mirror: %s, refusing connection", err)
+		connection.logf("can't validate mirror: %s", err)
 		return
 	}
 
