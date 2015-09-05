@@ -54,6 +54,13 @@ func main() {
 
 	go serveHangupSignals(server, configPath)
 
+	proxy, err := NewGitProxy("asgard:9418", "asgard:9419")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	proxy.RunLoop()
+
 	err = server.ListenHTTP()
 	if err != nil {
 		log.Fatal(err)
