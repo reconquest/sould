@@ -12,7 +12,7 @@ import (
 	"github.com/zazab/zhash"
 )
 
-const usage = `Sould 1.0
+const usage = `Sould 2.0
 
 Usage:
 	sould [-c <config>] [--insecure]
@@ -24,7 +24,7 @@ Options:
 `
 
 func main() {
-	args, err := docopt.Parse(usage, nil, true, "1.0", false)
+	args, err := docopt.Parse(usage, nil, true, "2.0", false)
 	if err != nil {
 		log.Fatal(err)
 	}
