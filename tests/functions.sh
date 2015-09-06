@@ -185,7 +185,7 @@ request_tar() {
         `get_listen_addr $number`/$mirror$query
 }
 
-# Function 'create_git' creates a git commit in directory with git repository,
+# Function 'create_commit' creates a git commit in directory with git repository,
 # which should be created by function 'create_repository'.
 # Function creates file with specified name and adds commit with content
 # 'test-$file-commit'

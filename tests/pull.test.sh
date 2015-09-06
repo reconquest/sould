@@ -22,9 +22,7 @@ config_master="`get_config_master $addr_master $storage_master 3000 $slaves`"
 
 # run all servers
 tests_ensure run_sould $config_slave_pa true
-
 tests_ensure run_sould $config_slave_re true
-
 tests_ensure run_sould $config_master true
 
 # create upstream git repository with one commit
@@ -40,7 +38,7 @@ tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
 # mirror to repository 'upstream' yet
 tests_assert_stderr_re "201 Created"
 
-# check for successfully propagate request to pulls, check commit in all
+# check for successfully propagating request to slaves, check commit in all
 # storages
 storages=("$storage_slave_re" "$storage_slave_pa" "$storage_master")
 for storage in $storages; do
@@ -57,7 +55,7 @@ tests_assert_success
 
 tests_ensure create_commit "upstream" "bar"
 
-tests_do request_pull $master $mirror_name `tests_tmpdir`/upstream
+tests_ensure request_pull $master $mirror_name `tests_tmpdir`/upstream
 tests_assert_stderr_re '200 OK'
 
 for storage in $storages; do
