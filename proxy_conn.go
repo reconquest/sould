@@ -38,6 +38,10 @@ func (connection *GitProxyConnection) log(value interface{}) {
 func (connection *GitProxyConnection) Serve() {
 	defer connection.listenConn.Close()
 
+	connection.logf(
+		"got gonnection from %s", connection.listenConn.RemoteAddr(),
+	)
+
 	buffer, err := connection.read(connection.listenConn)
 	if err != nil {
 		connection.log(err)
@@ -180,7 +184,6 @@ func (connection *GitProxyConnection) validateMirror() error {
 	if mirrorState != MirrorStateSuccess {
 		err = mirror.Pull()
 		if err != nil {
-			connection.logf("can't pull mirror '%s': %s", mirror.Name, err)
 			connection.mirrorStateTable.SetState(
 				mirror.Name, MirrorStateFailed,
 			)
