@@ -173,7 +173,7 @@ func (server *MirrorServer) handlePOST(
 	case forwardingFailed:
 		status = http.StatusBadGateway
 
-	case pullFailed:
+	case pullFailed, spoofFailed:
 		status = http.StatusInternalServerError
 
 	case hadToCreateMirror:
