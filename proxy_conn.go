@@ -89,8 +89,8 @@ func (connection GitProxyConnection) startTransfering() {
 	connection.transfering = make(chan bool)
 
 	// bidirectioal transfer
-	go connection.pipe(connection.daemonConn, connection.listenConn, false)
-	go connection.pipe(connection.listenConn, connection.daemonConn, true)
+	go connection.pipe(connection.daemonConn, connection.listenConn)
+	go connection.pipe(connection.listenConn, connection.daemonConn)
 
 	<-connection.transfering
 }
@@ -103,9 +103,7 @@ func (connection GitProxyConnection) stopTransfering(err error) {
 	connection.transfering <- true
 }
 
-func (connection *GitProxyConnection) pipe(
-	src, dst *net.TCPConn, isLocalToRemote bool,
-) {
+func (connection *GitProxyConnection) pipe(src, dst *net.TCPConn) {
 	for {
 		buffer, err := connection.read(src)
 		if err != nil {
