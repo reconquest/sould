@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 )
 
 type GitProxyConnection struct {
@@ -18,7 +19,6 @@ type GitProxyConnection struct {
 	mirrorName       string
 	mirrorStorageDir string
 	mirrorStateTable *MirrorStateTable
-	transfering      chan bool
 }
 
 func (connection *GitProxyConnection) logf(
@@ -80,43 +80,32 @@ func (connection *GitProxyConnection) Serve() {
 		return
 	}
 
-	connection.startTransfering()
+	connection.pipe()
 
 	connection.logf("closing connection")
 }
 
-func (connection GitProxyConnection) startTransfering() {
-	connection.transfering = make(chan bool)
+func (connection *GitProxyConnection) pipe() {
+	workers := &sync.WaitGroup{}
+	workers.Add(2)
 
-	// bidirectioal transfer
-	go connection.pipe(connection.daemonConn, connection.listenConn)
-	go connection.pipe(connection.listenConn, connection.daemonConn)
-
-	<-connection.transfering
-}
-
-func (connection GitProxyConnection) stopTransfering(err error) {
-	if err != nil && err != io.EOF {
-		connection.log(err)
-	}
-
-	connection.transfering <- true
-}
-
-func (connection *GitProxyConnection) pipe(src, dst *net.TCPConn) {
-	for {
-		buffer, err := connection.read(src)
+	go func() {
+		defer workers.Done()
+		_, err := io.Copy(connection.daemonConn, connection.listenConn)
 		if err != nil {
-			connection.stopTransfering(err)
-			return
+			connection.log(err)
 		}
+	}()
 
-		err = connection.write(dst, buffer)
+	go func() {
+		defer workers.Done()
+		_, err := io.Copy(connection.listenConn, connection.daemonConn)
 		if err != nil {
-			connection.stopTransfering(err)
-			return
+			connection.log(err)
 		}
-	}
+	}()
+
+	workers.Wait()
 }
 
 func (connection *GitProxyConnection) read(conn *net.TCPConn) ([]byte, error) {
