@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sync"
+)
+
 const (
 	MirrorStateUnknown MirrorState = iota
 	MirrorStateSuccess
@@ -9,8 +13,17 @@ const (
 type (
 	MirrorState int
 
-	MirrorStateTable map[string]MirrorState
+	MirrorStateTable struct {
+		lockWrite sync.Mutex
+		data      map[string]MirrorState
+	}
 )
+
+func NewMirrorStateTable() *MirrorStateTable {
+	table := &MirrorStateTable{}
+	table.data = make(map[string]MirrorState)
+	return table
+}
 
 func (state MirrorState) String() string {
 	switch state {
@@ -25,8 +38,8 @@ func (state MirrorState) String() string {
 	}
 }
 
-func (table MirrorStateTable) GetState(mirror string) MirrorState {
-	state, ok := table[mirror]
+func (table *MirrorStateTable) GetState(mirror string) MirrorState {
+	state, ok := table.data[mirror]
 	if ok {
 		return state
 	}
@@ -34,6 +47,9 @@ func (table MirrorStateTable) GetState(mirror string) MirrorState {
 	return MirrorStateUnknown
 }
 
-func (table MirrorStateTable) SetState(mirror string, state MirrorState) {
-	table[mirror] = state
+func (table *MirrorStateTable) SetState(mirror string, state MirrorState) {
+	table.lockWrite.Lock()
+	defer table.lockWrite.Unlock()
+
+	table.data[mirror] = state
 }

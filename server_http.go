@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+type RequestPull struct {
+	MirrorName   string
+	MirrorOrigin string
+	ShouldSpoof  bool
+	SpoofBranch  string
+	SpoofTag     string
+}
+
 func (server *MirrorServer) ListenHTTP() error {
 	http.Handle("/", server)
 
@@ -41,37 +49,40 @@ func (server *MirrorServer) ServeHTTP(
 }
 
 func (server *MirrorServer) handlePOST(
-	response http.ResponseWriter, request *http.Request,
+	response http.ResponseWriter, httpRequest *http.Request,
 ) {
 	var (
 		responseMessages []string
 
 		hadToCreateMirror   bool
 		pullFailed          bool
+		spoofFailed         bool
 		forwardingFailed    bool
 		forwardingFailedAll bool
 	)
 
-	mirrorName, mirrorOrigin, err := getMirrorParams(request)
+	request, err := parsePullRequest(httpRequest)
 	if err != nil {
-		log.Printf("%s, got http form: %#v", err, request.Form)
+		log.Printf("%s, got http form: %#v", err, httpRequest.Form)
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	log.Printf(
 		"got pull request for mirror, name = '%s', origin = '%s'",
-		mirrorName, mirrorOrigin,
+		request.MirrorName, request.MirrorOrigin,
 	)
 
-	if !server.insecureMode && !isURL(mirrorOrigin) {
+	if !server.insecureMode && !isURL(request.MirrorOrigin) {
 		message := "mirror origin should be URL"
-		log.Printf("%s, url is '%s'", message, mirrorOrigin)
+		log.Printf("%s, url is '%s'", message, request.MirrorOrigin)
 		http.Error(response, message, http.StatusForbidden)
 		return
 	}
 
-	mirror, hadToCreateMirror, err := server.GetMirror(mirrorName, mirrorOrigin)
+	mirror, hadToCreateMirror, err := server.GetMirror(
+		request.MirrorName, request.MirrorOrigin,
+	)
 	if err != nil {
 		log.Println(err)
 		http.Error(response, err.Error(), http.StatusInternalServerError)
@@ -81,7 +92,7 @@ func (server *MirrorServer) handlePOST(
 	if hadToCreateMirror {
 		log.Printf(
 			"mirror '%s' successfully created",
-			mirrorName,
+			request.MirrorName,
 		)
 	}
 
@@ -90,17 +101,38 @@ func (server *MirrorServer) handlePOST(
 		pullFailed = true
 
 		message := fmt.Sprintf(
-			"can't update mirror '%s': %s", mirrorName, err.Error(),
+			"can't update mirror '%s': %s", request.MirrorName, err.Error(),
 		)
 
 		log.Println(message)
 		responseMessages = append(responseMessages, message)
 
-		server.stateTable.SetState(mirrorName, MirrorStateFailed)
+		server.stateTable.SetState(request.MirrorName, MirrorStateFailed)
 	} else {
-		log.Printf("mirror '%s' successfully updated", mirrorName)
+		log.Printf("mirror '%s' successfully pulled", request.MirrorName)
 
-		server.stateTable.SetState(mirrorName, MirrorStateSuccess)
+		if request.ShouldSpoof {
+			err = mirror.SpoofBranchTag(request.SpoofBranch, request.SpoofTag)
+			if err != nil {
+				spoofFailed = true
+
+				message := fmt.Sprintf(
+					"can't spoof mirror '%s' branch: %s",
+					request.MirrorName, err.Error(),
+				)
+
+				log.Println(message)
+				responseMessages = append(responseMessages, message)
+
+				server.stateTable.SetState(
+					request.MirrorName, MirrorStateFailed,
+				)
+			}
+		}
+
+		if !spoofFailed {
+			server.stateTable.SetState(request.MirrorName, MirrorStateSuccess)
+		}
 	}
 
 	// if an error occurred during mirror pull, master sould should be
@@ -109,9 +141,7 @@ func (server *MirrorServer) handlePOST(
 	if server.IsMaster() {
 		slaves := server.GetMirrorUpstream()
 		if len(slaves) > 0 {
-			updatedSlaves, errors := slaves.Pull(
-				mirrorName, mirrorOrigin, server.httpClient,
-			)
+			updatedSlaves, errors := slaves.Pull(request, server.httpClient)
 
 			if len(updatedSlaves) > 0 {
 				log.Printf(
@@ -143,7 +173,7 @@ func (server *MirrorServer) handlePOST(
 	case forwardingFailed:
 		status = http.StatusBadGateway
 
-	case pullFailed:
+	case pullFailed, spoofFailed:
 		status = http.StatusInternalServerError
 
 	case hadToCreateMirror:
@@ -295,16 +325,25 @@ func (server MirrorServer) GetMirror(
 	return mirror, false, err
 }
 
-func getMirrorParams(
-	request *http.Request,
-) (name string, origin string, err error) {
-	err = request.ParseForm()
+func parsePullRequest(httpRequest *http.Request) (RequestPull, error) {
+	err := httpRequest.ParseForm()
 	if err != nil {
-		return "", "", err
+		return RequestPull{}, err
 	}
 
-	name = request.FormValue("name")
-	origin = request.FormValue("origin")
+	var (
+		name   = httpRequest.FormValue("name")
+		origin = httpRequest.FormValue("origin")
+		spoof  = httpRequest.FormValue("spoof")
+		branch = httpRequest.FormValue("branch")
+		tag    = httpRequest.FormValue("tag")
+
+		shouldSpoof = false
+	)
+
+	if spoof != "" {
+		shouldSpoof = true
+	}
 
 	switch {
 	case name == "":
@@ -312,9 +351,23 @@ func getMirrorParams(
 
 	case origin == "":
 		err = fmt.Errorf("mirror origin (clone url) can not be empty")
+
+	case shouldSpoof && branch == "":
+		err = fmt.Errorf("spoofing branch can not be empty")
+
+	case shouldSpoof && tag == "":
+		err = fmt.Errorf("spoofing tag can not be empty")
 	}
 
-	return name, origin, err
+	request := RequestPull{
+		MirrorName:   name,
+		MirrorOrigin: origin,
+		ShouldSpoof:  shouldSpoof,
+		SpoofBranch:  branch,
+		SpoofTag:     tag,
+	}
+
+	return request, err
 }
 
 func isURL(str string) bool {

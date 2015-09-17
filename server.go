@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -11,13 +12,13 @@ import (
 
 type MirrorServer struct {
 	config       zhash.Hash
-	stateTable   MirrorStateTable
+	stateTable   *MirrorStateTable
 	httpClient   *http.Client
 	insecureMode bool
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table MirrorStateTable, insecureMode bool,
+	config zhash.Hash, table *MirrorStateTable, insecureMode bool,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
 		stateTable:   table,
@@ -32,7 +33,7 @@ func NewMirrorServer(
 
 	err := server.SetConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid config: %s", err)
 	}
 
 	return &server, nil
@@ -67,7 +68,7 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 		return err
 	}
 
-	_, err = config.GetString("listen")
+	_, err = config.GetString("http", "listen")
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func (server *MirrorServer) GetStorageDir() string {
 }
 
 func (server *MirrorServer) GetListenAddress() string {
-	address, _ := server.config.GetString("listen")
+	address, _ := server.config.GetString("http", "listen")
 
 	return address
 }

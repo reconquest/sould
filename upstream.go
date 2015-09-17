@@ -29,46 +29,57 @@ func (slaves MirrorUpstream) GetHosts() []string {
 // returns slice of successfully updated slaves and slice of errors, which
 // can arise via running Pull() for every slave.
 func (slaves MirrorUpstream) Pull(
-	mirrorName string, mirrorOrigin string,
+	request RequestPull,
 	httpClient *http.Client,
 ) (successMirrorUpstream MirrorUpstream, errors []error) {
 	var (
-		workers = sync.WaitGroup{}
+		workersPull = sync.WaitGroup{}
+		workersPipe = sync.WaitGroup{}
 
 		pipeErrors  = make(chan error)
 		pipeUpdates = make(chan MirrorSlave)
 	)
 
 	for _, slave := range slaves {
+		workersPull.Add(1)
+
 		go func(slave MirrorSlave) {
-			defer workers.Done()
+			defer workersPull.Done()
 
 			// mirrorName, mirrorOrigin and httpClient will be availabled there
 			// by link
-			err := slave.Pull(mirrorName, mirrorOrigin, httpClient)
+			err := slave.Pull(request, httpClient)
 			if err != nil {
 				pipeErrors <- err
 			} else {
 				pipeUpdates <- slave
 			}
 		}(slave)
-
-		workers.Add(1)
 	}
 
+	workersPipe.Add(1)
 	go func() {
 		for err := range pipeErrors {
 			errors = append(errors, err)
 		}
+
+		workersPipe.Done()
 	}()
 
+	workersPipe.Add(1)
 	go func() {
 		for slave := range pipeUpdates {
 			successMirrorUpstream = append(successMirrorUpstream, slave)
 		}
+		workersPipe.Done()
 	}()
 
-	workers.Wait()
+	workersPull.Wait()
+
+	close(pipeErrors)
+	close(pipeUpdates)
+
+	workersPipe.Wait()
 
 	return successMirrorUpstream, errors
 }

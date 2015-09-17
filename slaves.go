@@ -12,12 +12,18 @@ type MirrorSlave string
 // Pull do HTTP POST request to slave with mirror name and
 // origin
 func (slave MirrorSlave) Pull(
-	mirrorName string, mirrorOrigin string,
+	request RequestPull,
 	httpClient *http.Client,
 ) error {
 	payload := url.Values{
-		"name":   {mirrorName},
-		"origin": {mirrorOrigin},
+		"name":   {request.MirrorName},
+		"origin": {request.MirrorOrigin},
+	}
+
+	if request.ShouldSpoof {
+		payload.Set("spoof", "true")
+		payload.Set("branch", request.SpoofBranch)
+		payload.Set("tag", request.SpoofTag)
 	}
 
 	response, err := httpClient.PostForm(

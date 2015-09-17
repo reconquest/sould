@@ -1,0 +1,9 @@
+[Unit]
+Description=Service for mirroring git repositories
+
+[Service]
+ExecStart=/usr/bin/sould
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

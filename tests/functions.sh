@@ -31,15 +31,20 @@ get_storage() {
 get_config_slave() {
     local listen="$1"
     local storage="$2"
+    local git_listen=${3:-localhost:$((10000+$RANDOM))}
 
     local path="$storage/.config"
 
     local config="
-listen = \"$listen\"
 storage = \"$storage\"
+[http]
+listen = \"$listen\"
+[git]
+listen = \"$git_listen\"
+daemon = \"localhost:9419\"
 "
 
-    echo "$config" > "$path"
+    echo "$config" >> "$path"
     echo "$path"
 }
 
@@ -55,9 +60,9 @@ get_config_master() {
     local timeout="$3"
     shift 3
 
-    local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
+    local path="$storage/.config"
 
-    local path=`get_config_slave $listen $storage`
+    local slaves='"'$(sed 's/ /", "/g' <<< "$@")'"'
 
     local config="
 master = true
@@ -66,7 +71,8 @@ slaves = [$slaves]
 "
 
     echo "$config" >> "$path"
-    echo "$path"
+
+    get_config_slave $listen $storage
 }
 
 # Function 'run_sould' starts background work for sould with specified config.
@@ -85,9 +91,12 @@ run_sould() {
 
     local listen=`cat $config | awk '/listen/{print $3}' | sed 's/"//g'`
 
-    tests_debug "running sould server on $listen"
+    tests_debug "running sould server on $listen with config:$(cat $config)"
 
     local bg_id=`tests_background "$SOULD_BIN $params"`
+    if [[ "$bg_id" == "" ]]; then
+        return 1
+    fi
     local bg_pid=`tests_background_pid $bg_id`
 
 
@@ -136,6 +145,27 @@ request_pull() {
         `get_listen_addr $number`/
 }
 
+# Function 'requests_pull_spoof' do POST request with spoof parameters to a
+# sould server, which should be specified by number.
+# Args:
+#    $1 - sould server number
+#    $2 - mirror name
+#    $3 - mirror origin (clone url)
+#    $4 - branch
+#    $5 - tag
+request_pull_spoof() {
+    local number="$1"
+    local name="$2"
+    local origin="$3"
+    local branch="$4"
+    local tag="$5"
+
+    curl -s -v -X POST \
+        -m 10 \
+        --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
+        `get_listen_addr $number`/
+}
+
 # Function 'request_tar' do GET request to a sould server, which should be
 # specified by number, tar archive content will be available in stdout.
 # Args:
@@ -155,7 +185,7 @@ request_tar() {
         `get_listen_addr $number`/$mirror$query
 }
 
-# Function 'create_git' creates a git commit in directory with git repository,
+# Function 'create_commit' creates a git commit in directory with git repository,
 # which should be created by function 'create_repository'.
 # Function creates file with specified name and adds commit with content
 # 'test-$file-commit'
@@ -167,12 +197,9 @@ create_commit() {
     local file="$2"
 
     tests_tmp_cd $repository
-    tests_do touch $file
-    tests_assert_success
-    tests_do git add $file
-    tests_assert_success
-    tests_do git commit -m test-$file-commit
-    tests_assert_success
+    tests_ensure touch $file
+    tests_ensure git add $file
+    tests_ensure git commit -m test-$file-commit
 }
 
 # Function 'create_repository' creates a git repository in temporary test
@@ -185,6 +212,5 @@ create_repository() {
     tests_mkdir $name
     tests_tmp_cd $name
 
-    tests_do git init
-    tests_assert_success
+    tests_ensure git init
 }

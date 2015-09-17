@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -11,7 +12,7 @@ import (
 	"github.com/zazab/zhash"
 )
 
-const usage = `Sould 1.0
+const usage = `Sould 2.0
 
 Usage:
 	sould [-c <config>] [--insecure]
@@ -23,7 +24,7 @@ Options:
 `
 
 func main() {
-	args, err := docopt.Parse(usage, nil, true, "1.0", false)
+	args, err := docopt.Parse(usage, nil, true, "2.0", false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,16 +48,28 @@ func main() {
 		)
 	}
 
-	server, err := NewMirrorServer(config, MirrorStateTable{}, insecureMode)
+	mirrorStateTable := NewMirrorStateTable()
+
+	server, err := NewMirrorServer(config, mirrorStateTable, insecureMode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	go serveHangupSignals(server, configPath)
+	proxy, err := NewGitProxy(config, mirrorStateTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go serveHangupSignals(server, proxy, configPath)
+
+	err = proxy.Start()
+	if err != nil {
+		log.Fatalf("failed to start git daemon proxy: %s", err)
+	}
 
 	err = server.ListenHTTP()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to start http server: %s", err)
 	}
 }
 
@@ -72,7 +85,7 @@ func getConfig(path string) (zhash.Hash, error) {
 }
 
 func reloadConfig(
-	server *MirrorServer, configPath string,
+	server *MirrorServer, proxy *GitProxy, configPath string,
 ) (becameMaster bool, becameSlave bool, err error) {
 	wasMaster := server.IsMaster()
 
@@ -83,23 +96,36 @@ func reloadConfig(
 
 	err = server.SetConfig(newConfig)
 	if err != nil {
-		return false, false, err
+		return false, false, fmt.Errorf(
+			"can't set config for http server: %s", err,
+		)
 	}
 
 	if server.IsMaster() == wasMaster {
 		return false, false, nil
 	}
 
+	err = proxy.SetConfig(newConfig)
+	if err != nil {
+		return false, false, fmt.Errorf(
+			"can't set config for git daemon proxy: %s", err,
+		)
+	}
+
 	return server.IsMaster(), wasMaster, nil
 }
 
 // waits for SIGHUP and try to reload config
-func serveHangupSignals(server *MirrorServer, configPath string) {
+func serveHangupSignals(
+	server *MirrorServer, proxy *GitProxy, configPath string,
+) {
 	hangup := make(chan os.Signal, 1)
 	signal.Notify(hangup, syscall.SIGHUP)
 
 	for _ = range hangup {
-		becameMaster, becameSlave, err := reloadConfig(server, configPath)
+		becameMaster, becameSlave, err := reloadConfig(
+			server, proxy, configPath,
+		)
 		switch {
 		case err != nil:
 			log.Printf("can't reload config: %s", err.Error())
