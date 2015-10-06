@@ -1,5 +1,6 @@
 [Unit]
 Description=Service for mirroring git repositories
+Requires=sould-gitd.service
 
 [Service]
 ExecStart=/usr/bin/sould
