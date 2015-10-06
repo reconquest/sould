@@ -1,0 +1,8 @@
+storage = "/var/sould/"
+
+[http]
+listen = ":80"
+
+[git]
+listen=":9418"
+daemon="localhost:9419"
