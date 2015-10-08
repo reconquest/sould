@@ -69,8 +69,10 @@ func (server *MirrorServer) handlePOST(
 	}
 
 	log.Printf(
-		"got pull request for mirror, name = '%s', origin = '%s'",
+		"got pull request for mirror, name = '%s', origin = '%s', "+
+			"should spoof = %t, spoof branch = '%s', spoof tag '%s'",
 		request.MirrorName, request.MirrorOrigin,
+		request.ShouldSpoof, request.SpoofBranch, request.SpoofTag,
 	)
 
 	if !server.insecureMode && !isURL(request.MirrorOrigin) {
@@ -126,6 +128,10 @@ func (server *MirrorServer) handlePOST(
 
 				server.stateTable.SetState(
 					request.MirrorName, MirrorStateFailed,
+				)
+			} else {
+				log.Printf(
+					"mirror '%s' successfully spoofed", request.MirrorName,
 				)
 			}
 		}
