@@ -4,6 +4,7 @@ Requires=sould-gitd.service
 
 [Service]
 ExecStart=/usr/bin/sould
+ExecReload=/usr/bin/kill -HUP $MAINPID
 Restart=always
 
 [Install]
