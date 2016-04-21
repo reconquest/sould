@@ -4,8 +4,7 @@
 # Args:
 #   $1 - number of running sould
 get_listen_addr() {
-    local number=$1
-
+    local number=$(printf '%d' "$1" 2>/dev/null)
     echo localhost:$((60000+$number))
 }
 
@@ -139,10 +138,14 @@ request_pull() {
     local name="$2"
     local origin="$3"
 
-    curl -s -v -X POST \
+    curl \
+        -s \
+        -v \
+        -X POST \
         -m 10 \
         --data "name=$name&origin=$origin" \
-        `get_listen_addr $number`/
+        "$(get_listen_addr $number)/" 2>&1 | tee `tests_tmpdir`/response
+    return $?
 }
 
 # Function 'requests_pull_spoof' do POST request with spoof parameters to a
@@ -183,6 +186,7 @@ request_tar() {
     curl -s -v -X GET \
         -m 10 \
         `get_listen_addr $number`/$mirror$query
+    return $?
 }
 
 # Function 'create_commit' creates a git commit in directory with git repository,

@@ -8,78 +8,76 @@ import (
 type MirrorUpstream []MirrorSlave
 
 func NewMirrorUpstream(hosts []string) MirrorUpstream {
-	slaves := MirrorUpstream{}
+	upstream := MirrorUpstream{}
 	for _, host := range hosts {
-		slaves = append(slaves, MirrorSlave(host))
+		upstream = append(upstream, MirrorSlave(host))
 	}
 
-	return slaves
+	return upstream
 }
 
-func (slaves MirrorUpstream) GetHosts() []string {
+func (upstream MirrorUpstream) GetHosts() []string {
 	hosts := []string{}
-	for _, slave := range slaves {
+	for _, slave := range upstream {
 		hosts = append(hosts, string(slave))
 	}
 
 	return hosts
 }
 
-// Pull runs and wait workers for all slaves, which do HTTP POST requests
-// returns slice of successfully updated slaves and slice of errors, which
-// can arise via running Pull() for every slave.
-func (slaves MirrorUpstream) Pull(
-	request RequestPull,
-	httpClient *http.Client,
-) (successMirrorUpstream MirrorUpstream, errors []error) {
+// PropagatePullRequest starts and wait all workers, which propagates POST
+// requests to sould slave servers.
+// Returns slice of successfully updated slaves and slice of slave errors,
+// which can arise via running Pull() for every slave.
+func (upstream MirrorUpstream) PropagatePullRequest(
+	httpResource *http.Client, request PullRequest,
+) (successes []MirrorSlave, errors []*MirrorSlaveError) {
 	var (
-		workersPull = sync.WaitGroup{}
-		workersPipe = sync.WaitGroup{}
+		workersPull     = sync.WaitGroup{}
+		workersResponse = sync.WaitGroup{}
 
-		pipeErrors  = make(chan error)
-		pipeUpdates = make(chan MirrorSlave)
+		responsesError   = make(chan *MirrorSlaveError)
+		responsesSuccess = make(chan MirrorSlave)
 	)
 
-	for _, slave := range slaves {
+	for _, slave := range upstream {
 		workersPull.Add(1)
 
 		go func(slave MirrorSlave) {
 			defer workersPull.Done()
 
-			// mirrorName, mirrorOrigin and httpClient will be availabled there
-			// by link
-			err := slave.Pull(request, httpClient)
+			err := slave.Pull(request, httpResource)
 			if err != nil {
-				pipeErrors <- err
+				responsesError <- err
 			} else {
-				pipeUpdates <- slave
+				responsesSuccess <- slave
 			}
 		}(slave)
 	}
 
-	workersPipe.Add(1)
+	workersResponse.Add(1)
 	go func() {
-		for err := range pipeErrors {
+		for err := range responsesError {
 			errors = append(errors, err)
 		}
 
-		workersPipe.Done()
+		workersResponse.Done()
 	}()
 
-	workersPipe.Add(1)
+	workersResponse.Add(1)
 	go func() {
-		for slave := range pipeUpdates {
-			successMirrorUpstream = append(successMirrorUpstream, slave)
+		for slave := range responsesSuccess {
+			successes = append(successes, slave)
 		}
-		workersPipe.Done()
+		workersResponse.Done()
 	}()
 
 	workersPull.Wait()
 
-	close(pipeErrors)
-	close(pipeUpdates)
+	close(responsesError)
+	close(responsesSuccess)
 
-	workersPipe.Wait()
+	workersResponse.Wait()
 
-	return successMirrorUpstream, errors
+	return successes, errors
 }

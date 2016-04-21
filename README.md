@@ -23,14 +23,17 @@ works in master mode, then request will be propagated to all known slaves.
 Master server uses parallel threads while communicating with slaves.
 
 Basic response statuses:
-- `201 Created` - this status is returned when sould doesn't know about this
-    repository and it had to create new mirror.
+
 - `200 OK` - everything is okay, all changes were just replicated.
-- `500 Internal Server Error` - this status is returned when sould server have
-     some internal problems, i.e couldn't write to storage directory, or could
-     not pull repository changes.
+- `500 Internal Server Error` - this status is returns when sould server have
+     problems with pulling changeset, i.e couldn't write to storage directory,
+     or could not pull remote changeset.
 
 Master server response statuses:
+
+- `500 Internal Server Error` - this status is returns when master server
+     successfully propagated pull request to all sould slave servers, but have
+     problems with pulling remote changeset on master server.
 - `502 Bad Gateway` - one or more slave servers returned error statuses.
 - `503 Service Unavailable` - this is fatal error, which can occur only
     when sould servers (including master one) couldn't pull the repository

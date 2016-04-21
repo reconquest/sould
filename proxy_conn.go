@@ -2,110 +2,144 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"strings"
 	"sync"
+
+	"github.com/kovetskiy/lorg"
 )
 
 type GitProxyConnection struct {
-	id               int64
-	listenConn       *net.TCPConn
-	listenAddr       *net.TCPAddr
-	daemonAddr       *net.TCPAddr
-	daemonConn       *net.TCPConn
-	mirrorName       string
-	mirrorStorageDir string
-	mirrorStateTable *MirrorStateTable
+	id         int64
+	client     *net.TCPConn
+	daemon     *net.TCPConn
+	daemonAddr *net.TCPAddr
+	mirrorName string
+	storageDir string
+	states     *MirrorStates
+	logger     lorg.Logger
 }
 
-func (connection *GitProxyConnection) logf(
-	format string, value ...interface{},
-) {
-	connection.log(fmt.Sprintf(format, value...))
-}
-
-func (connection *GitProxyConnection) log(value interface{}) {
-	log.Printf("[git:%d] %s", connection.id, value)
-}
-
-func (connection *GitProxyConnection) Serve() {
-	defer connection.listenConn.Close()
-
-	connection.logf(
-		"got connection from %s", connection.listenConn.RemoteAddr(),
+func (connection *GitProxyConnection) bootstrap() {
+	connection.logger = NewPrefixedLogger(
+		fmt.Sprintf("(git:%d)", connection.id),
 	)
 
-	buffer, err := connection.read(connection.listenConn)
+	connection.logger.Infof(
+		"remote_addr = %s",
+		connection.client.RemoteAddr(),
+	)
+}
+
+func (connection *GitProxyConnection) Handle() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			// using application-wide logger for preventing extra panics by
+			// connection.logger
+			logger.Errorf(
+				"(git:%d) PANIC! %s\n%s",
+				connection.id, err, stack(),
+			)
+		}
+	}()
+
+	connection.bootstrap()
+
+	defer func() {
+		connection.logger.Error("closing connection")
+
+		err := connection.client.Close()
+		if err != nil {
+			connection.logger.Error(err)
+		}
+	}()
+
+	err := connection.serve()
 	if err != nil {
-		connection.log(err)
-		return
+		connection.logger.Error(err)
+	}
+}
+
+func (connection *GitProxyConnection) serve() error {
+	buffer, err := connection.read(connection.client)
+	if err != nil {
+		return fmt.Errorf("can't read request: %s", err)
 	}
 
 	err = connection.parseRequest(buffer)
 	if err != nil {
-		connection.logf("can't parse request: %s", err)
-		return
+		return fmt.Errorf("can't parse request: %s", err)
 	}
 
 	err = connection.validateMirror()
 	if err != nil {
-		connection.logf("can't validate mirror: %s", err)
-		return
+		return fmt.Errorf("can't validate mirror: %s", err)
 	}
 
-	connection.logf(
-		"forwarding request with mirror '%s' to git daemon",
+	connection.logger.Infof(
+		"serving request with mirror %s",
 		connection.mirrorName,
 	)
 
-	daemonConn, err := net.DialTCP("tcp", nil, connection.daemonAddr)
+	daemon, err := net.DialTCP("tcp", nil, connection.daemonAddr)
 	if err != nil {
-		connection.logf("can't connect to git daemon: %s", err)
-		return
+		return fmt.Errorf(
+			"can't connect to git daemon %s: %s",
+			connection.daemonAddr, err,
+		)
 	}
 
-	connection.daemonConn = daemonConn
-	defer connection.daemonConn.Close()
+	connection.daemon = daemon
+	defer connection.daemon.Close()
 
 	// enabling Nagle's Algorithm
-	connection.listenConn.SetNoDelay(true)
-	connection.daemonConn.SetNoDelay(true)
-
-	err = connection.write(connection.daemonConn, buffer)
+	err = connection.client.SetNoDelay(true)
 	if err != nil {
-		connection.log(err)
-		return
+		return fmt.Errorf("can't set no delay for client: %s", err)
+	}
+
+	err = connection.daemon.SetNoDelay(true)
+	if err != nil {
+		return fmt.Errorf("can't set no delay for daemon: %s", err)
+	}
+
+	err = connection.write(connection.daemon, buffer)
+	if err != nil {
+		return fmt.Errorf("can't write buffer: %s", err)
 	}
 
 	connection.pipe()
 
-	connection.logf("closing connection")
+	return nil
 }
 
 func (connection *GitProxyConnection) pipe() {
-	workers := &sync.WaitGroup{}
-	workers.Add(2)
+	pipers := &sync.WaitGroup{}
+	pipers.Add(2)
 
 	go func() {
-		defer workers.Done()
-		_, err := io.Copy(connection.daemonConn, connection.listenConn)
+		defer pipers.Done()
+
+		_, err := io.Copy(connection.daemon, connection.client)
 		if err != nil {
-			connection.log(err)
+			connection.logger.Errorf("can't proxy daemon -> client: %s", err)
 		}
 	}()
 
 	go func() {
-		defer workers.Done()
-		_, err := io.Copy(connection.listenConn, connection.daemonConn)
+		defer pipers.Done()
+
+		_, err := io.Copy(connection.client, connection.daemon)
 		if err != nil {
-			connection.log(err)
+			connection.logger.Errorf("can't proxy client -> daemon: %s", err)
 		}
 	}()
 
-	workers.Wait()
+	pipers.Wait()
 }
 
 func (connection *GitProxyConnection) read(conn *net.TCPConn) ([]byte, error) {
@@ -131,7 +165,9 @@ func (connection *GitProxyConnection) parseRequest(buffer []byte) error {
 	// because buffer will be splitted by \00 byte
 	request := bytes.Split(buffer[4:], []byte{0x00})
 	if len(request) < 2 {
-		return fmt.Errorf("protocol error: %s", buffer)
+		return errors.New(
+			"protocol error: unexpected packet",
+		)
 	}
 
 	uploadPackPart := request[0]
@@ -139,9 +175,8 @@ func (connection *GitProxyConnection) parseRequest(buffer []byte) error {
 	// there is additional space after 'git-upload-pack' for preventing
 	// ambigious binary name like 'git-upload-pack-fake-do-something-evil'
 	if !bytes.HasPrefix(uploadPackPart, []byte("git-upload-pack ")) {
-		return fmt.Errorf(
-			"protocol-error: buffer should contains 'git-upload-pack' %s",
-			buffer,
+		return errors.New(
+			"protocol error: buffer should contains 'git-upload-pack'",
 		)
 	}
 
@@ -149,7 +184,7 @@ func (connection *GitProxyConnection) parseRequest(buffer []byte) error {
 	mirrorName = strings.Trim(mirrorName, " /")
 
 	if mirrorName == "" {
-		return fmt.Errorf("protocol error: mirror name can't be empty")
+		return errors.New("protocol error: mirror name can't be empty")
 	}
 
 	connection.mirrorName = mirrorName
@@ -159,29 +194,38 @@ func (connection *GitProxyConnection) parseRequest(buffer []byte) error {
 
 func (connection *GitProxyConnection) validateMirror() error {
 	mirror, err := GetMirror(
-		connection.mirrorStorageDir, connection.mirrorName,
+		connection.storageDir, connection.mirrorName,
 	)
 	if err != nil {
-		return fmt.Errorf("can't find mirror: %s", err)
+		return fmt.Errorf(
+			"can't get mirror %s: %s", connection.mirrorName, err,
+		)
 	}
 
-	mirrorState := connection.mirrorStateTable.GetState(mirror.Name)
+	state := connection.states.GetState(mirror.Name)
 
-	if mirrorState != MirrorStateSuccess {
-		err = mirror.Pull()
+	fmt.Printf("XXXXXX proxy_conn.go:206: state: %#v\n", state.String())
+	if state == MirrorStateUnknown || state == MirrorStateError {
+		connection.states.SetState(mirror.Name, MirrorStateProcessing)
+
+		connection.logger.Warning("XXXXX")
+		connection.logger.Infof("fetching mirror %s changeset", mirror.String())
+
+		err = mirror.Fetch()
 		if err != nil {
-			connection.mirrorStateTable.SetState(
-				mirror.Name, MirrorStateFailed,
+			connection.states.SetState(
+				mirror.Name, MirrorStateError,
 			)
 
 			return fmt.Errorf(
 				"mirror state is '%s', error occurred while pulling data: %s",
-				mirrorState, err,
+				state, err,
 			)
 		}
 
-		connection.mirrorStateTable.SetState(mirror.Name, MirrorStateSuccess)
-		mirrorState = MirrorStateSuccess
+		connection.logger.Infof("mirror %s changeset fetched", mirror.String())
+
+		connection.states.SetState(mirror.Name, MirrorStateSuccess)
 	}
 
 	return nil

@@ -1,31 +1,30 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/seletskiy/hierr"
 	"github.com/zazab/zhash"
 )
 
 type MirrorServer struct {
 	config       zhash.Hash
-	stateTable   *MirrorStateTable
-	httpClient   *http.Client
+	states       *MirrorStates
+	httpResource *http.Client
 	insecureMode bool
 }
 
 func NewMirrorServer(
-	config zhash.Hash, table *MirrorStateTable, insecureMode bool,
+	config zhash.Hash, states *MirrorStates, insecureMode bool,
 ) (*MirrorServer, error) {
 	server := MirrorServer{
-		stateTable:   table,
+		states:       states,
 		insecureMode: insecureMode,
 	}
 
-	server.httpClient = &http.Client{
+	server.httpResource = &http.Client{
 		Transport: &http.Transport{
 			Dial: server.NetDial,
 		},
@@ -33,7 +32,7 @@ func NewMirrorServer(
 
 	err := server.SetConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("invalid config: %s", err)
+		return nil, hierr.Errorf(err, "invalid configuration")
 	}
 
 	return &server, nil
@@ -52,9 +51,7 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 		}
 
 		if len(slaves) == 0 {
-			log.Println(
-				"WARNING! Slave servers directive is empty or not defined",
-			)
+			logger.Warning("slave servers is not specified")
 		} else {
 			_, err = config.GetInt("timeout")
 			if err != nil {
@@ -82,6 +79,10 @@ func (server *MirrorServer) IsMaster() bool {
 	isMaster, _ := server.config.GetBool("master")
 
 	return isMaster
+}
+
+func (server MirrorServer) IsSlave() bool {
+	return !server.IsMaster()
 }
 
 func (server *MirrorServer) GetStorageDir() string {

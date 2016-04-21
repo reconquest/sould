@@ -6,40 +6,44 @@ import (
 
 const (
 	MirrorStateUnknown MirrorState = iota
+	MirrorStateProcessing
 	MirrorStateSuccess
-	MirrorStateFailed
+	MirrorStateError
 )
 
 type (
 	MirrorState int
 
-	MirrorStateTable struct {
+	MirrorStates struct {
 		lockWrite sync.Mutex
 		data      map[string]MirrorState
 	}
 )
 
-func NewMirrorStateTable() *MirrorStateTable {
-	table := &MirrorStateTable{}
-	table.data = make(map[string]MirrorState)
-	return table
+func NewMirrorStates() *MirrorStates {
+	states := &MirrorStates{}
+	states.data = make(map[string]MirrorState)
+	return states
 }
 
 func (state MirrorState) String() string {
 	switch state {
+	case MirrorStateProcessing:
+		return "processing"
+
 	case MirrorStateSuccess:
 		return "success"
 
-	case MirrorStateFailed:
-		return "failed"
+	case MirrorStateError:
+		return "error"
 
 	default:
 		return "unknown"
 	}
 }
 
-func (table *MirrorStateTable) GetState(mirror string) MirrorState {
-	state, ok := table.data[mirror]
+func (states *MirrorStates) GetState(mirror string) MirrorState {
+	state, ok := states.data[mirror]
 	if ok {
 		return state
 	}
@@ -47,9 +51,9 @@ func (table *MirrorStateTable) GetState(mirror string) MirrorState {
 	return MirrorStateUnknown
 }
 
-func (table *MirrorStateTable) SetState(mirror string, state MirrorState) {
-	table.lockWrite.Lock()
-	defer table.lockWrite.Unlock()
+func (states *MirrorStates) SetState(mirror string, state MirrorState) {
+	states.lockWrite.Lock()
+	defer states.lockWrite.Unlock()
 
-	table.data[mirror] = state
+	states.data[mirror] = state
 }

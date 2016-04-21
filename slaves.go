@@ -1,71 +1,51 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+
+	"github.com/ajg/form"
 )
 
+// MirrorSlave is representation of slave sould server.
 type MirrorSlave string
 
-// Pull do HTTP POST request to slave with mirror name and
-// origin
+// Pull creates and sends HTTP request basing on given PullRequest variable to
+// given slave server using given http client.
 func (slave MirrorSlave) Pull(
-	request RequestPull,
-	httpClient *http.Client,
-) error {
-	payload := url.Values{
-		"name":   {request.MirrorName},
-		"origin": {request.MirrorOrigin},
+	request PullRequest,
+	httpResource *http.Client,
+) *MirrorSlaveError {
+	payload, err := form.EncodeToValues(request)
+	if err != nil {
+		return &MirrorSlaveError{
+			Slave:        slave,
+			ErrorRequest: NewError(err, "can't create payload"),
+		}
 	}
 
-	if request.ShouldSpoof {
-		payload.Set("spoof", "true")
-		payload.Set("branch", request.SpoofBranch)
-		payload.Set("tag", request.SpoofTag)
-	}
-
-	response, err := httpClient.PostForm(
+	response, err := httpResource.PostForm(
 		"http://"+string(slave)+"/", payload,
 	)
-
 	if err != nil {
-		return fmt.Errorf(
-			"can't propagate request to slave '%s': %s",
-			slave, err.Error(),
-		)
+		return &MirrorSlaveError{
+			Slave:        slave,
+			ErrorRequest: err,
+		}
 	}
 
-	if response.StatusCode != 200 && response.StatusCode != 201 {
-		statusError := fmt.Errorf(
-			"slave '%s' was unwell, http status is '%s'",
-			slave, response.Status,
-		)
-
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf(
-				"%s, can't read response body: %s",
-				statusError, err,
-			)
-		}
-
-		defer response.Body.Close()
-
-		if string(body) == "" {
-			err = fmt.Errorf(
-				"%s, response body is empty", statusError,
-			)
-
-		} else {
-			err = fmt.Errorf(
-				"%s, response body: %s", statusError, string(body),
-			)
-		}
-
-		return err
+	if response.StatusCode == 200 || response.StatusCode == 201 {
+		return nil
 	}
 
-	return nil
+	body, err := ioutil.ReadAll(response.Body)
+
+	return &MirrorSlaveError{
+		Slave:        slave,
+		Status:       response.Status,
+		StatusCode:   response.StatusCode,
+		HeaderXError: response.Header.Get("X-Error"),
+		ResponseBody: string(body),
+		ErrorReceive: err,
+	}
 }

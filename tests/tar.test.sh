@@ -19,7 +19,7 @@ tests_do request_tar 0 $mirror_name
 tests_assert_stderr_re "404 Not Found"
 
 tests_do request_pull 0 $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re "201 Created"
+tests_assert_stdout_re "200 OK"
 
 tests_do request_tar 0 $mirror_name '>' `tests_tmpdir`/archive.tar
 tests_assert_stderr_re "200 OK"
@@ -55,7 +55,7 @@ tests_ensure run_sould "$config" true
 
 tests_do request_tar 0 $mirror_name ">" `tests_tmpdir`/archive3.tar
 tests_assert_stderr_re "200 OK"
-tests_assert_stderr_re "X-State: failed"
+tests_assert_stderr_re "X-State: error"
 tests_assert_stderr_re "$modify_date_header"
 
 tests_ensure tar -xlvf `tests_tmpdir`/archive3.tar
