@@ -112,7 +112,7 @@ func (server *MirrorServer) NetDial(
 	network, address string,
 ) (net.Conn, error) {
 	timeout := time.Duration(
-		int64(time.Microsecond) * server.GetTimeout(),
+		int64(time.Millisecond) * server.GetTimeout(),
 	)
 
 	return net.DialTimeout(network, address, timeout)
