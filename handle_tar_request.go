@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+// HandleTarRequest handles requests for downloading tar archives of specified
+// revision.
 func (server *MirrorServer) HandleTarRequest(
 	response http.ResponseWriter, request TarRequest,
 ) {

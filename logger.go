@@ -7,10 +7,12 @@ const (
 	logFormatting = `${level:%s\::right:false} ${time} ${prefix}%s`
 )
 
+// NewLogger creates new instance of pluggable logger without any prefixes.
 func NewLogger() lorg.Logger {
 	return NewPrefixedLogger("")
 }
 
+// NewLogger creates new instance of pluggable logger using specified prefix.
 func NewPrefixedLogger(prefix string) lorg.Logger {
 	if prefix != "" {
 		prefix += " "

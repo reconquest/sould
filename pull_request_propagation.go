@@ -63,7 +63,7 @@ func (propagation PullRequestPropagation) SlavesSuccess() []MirrorSlave {
 	return propagation.successes
 }
 
-// SlaveSuccess returns slice of complex structured errors which has been
+// SlaveErrors returns slice of complex structured errors which has been
 // occurred while propagation request to slaves.
 func (propagation PullRequestPropagation) SlavesErrors() []*MirrorSlaveError {
 	return propagation.errors

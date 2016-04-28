@@ -7,6 +7,7 @@ import (
 	"github.com/zazab/zhash"
 )
 
+// GitProxy is proxy server for git daemon.
 type GitProxy struct {
 	listenAddr  *net.TCPAddr
 	daemonAddr  *net.TCPAddr
@@ -16,6 +17,8 @@ type GitProxy struct {
 	storageDir  string
 }
 
+// NewGitProxy creates new instance of git proxy server using specified
+// configuration.
 func NewGitProxy(
 	config zhash.Hash, states *MirrorStates,
 ) (*GitProxy, error) {
@@ -31,6 +34,8 @@ func NewGitProxy(
 	return proxy, nil
 }
 
+// SetConfig validates,  sets given configuration and resolv listen and daemon
+// addresses using new configuration variables.
 func (proxy *GitProxy) SetConfig(config zhash.Hash) error {
 	listenAddrString, err := config.GetString("git", "listen")
 	if err != nil {
@@ -64,6 +69,8 @@ func (proxy *GitProxy) SetConfig(config zhash.Hash) error {
 	return nil
 }
 
+// Start creates new tcp listener and starts new thread for handling
+// connections.
 func (proxy *GitProxy) Start() error {
 	var err error
 	proxy.listener, err = net.ListenTCP("tcp", proxy.listenAddr)
@@ -76,6 +83,7 @@ func (proxy *GitProxy) Start() error {
 	return nil
 }
 
+// Stop closes listenning tcp connection.
 func (proxy *GitProxy) Stop() {
 	proxy.listener.Close()
 }

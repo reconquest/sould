@@ -12,6 +12,8 @@ import (
 	"github.com/kovetskiy/lorg"
 )
 
+// GitProxyConnections is representation of TCP connection with sould git proxy
+// and local git daemon which runs in storage directory.
 type GitProxyConnection struct {
 	id         int64
 	client     *net.TCPConn
@@ -34,6 +36,7 @@ func (connection *GitProxyConnection) bootstrap() {
 	)
 }
 
+// Handle new tcp connection between client and git daemon.
 func (connection *GitProxyConnection) Handle() {
 	defer func() {
 		err := recover()

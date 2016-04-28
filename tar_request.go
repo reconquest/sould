@@ -7,9 +7,13 @@ import (
 	"strings"
 )
 
+// TarRequest is the request for downloading tar archive of specified git
+// revision.
 type TarRequest struct {
+	// MirrorName is a string representation of archiving mirror.
 	MirrorName string
-	Reference  string
+	// Reference is a string representation of git revision.
+	Reference string
 }
 
 func (request TarRequest) String() string {
@@ -19,6 +23,8 @@ func (request TarRequest) String() string {
 	)
 }
 
+// ExtractTarRequests parses given URL and extracts request for downloading tar
+// archive.
 func ExtractTarRequest(url *url.URL) (TarRequest, error) {
 	request := TarRequest{
 		MirrorName: strings.Trim(url.Path, "/"),

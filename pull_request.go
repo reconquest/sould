@@ -9,12 +9,23 @@ import (
 	"github.com/ajg/form"
 )
 
+// PullRequest is the request for pulling changeset from remote repository
 type PullRequest struct {
-	MirrorName     string `form:"name"`
-	MirrorOrigin   string `form:"origin"`
-	Spoof          bool   `form:"spoof,omitempty"`
+	// MirrorName is name which will be used for identify repository mirror.
+	MirrorName string `form:"name"`
+
+	// MirrorOrigin is clone/fetch URL of remote repository.
+	MirrorOrigin string `form:"origin"`
+
+	// Spoof is positional parameter which need for pre-receive feature with
+	// spoofing changesets.
+	Spoof bool `form:"spoof,omitempty"`
+
+	// SpoofingBranch identifies branch which will be spoofed.
 	SpoofingBranch string `form:"branch,omitempty"`
-	SpoofingTag    string `form:"tag,omitempty"`
+
+	// SpoofingTar identifies tag which will be spoofed.
+	SpoofingTag string `form:"tag,omitempty"`
 }
 
 func (request PullRequest) String() string {
@@ -25,6 +36,9 @@ func (request PullRequest) String() string {
 	)
 }
 
+// ExtractPullRequest parses post form and creates new instance of PullRequest,
+// if insecure is false (by default) then ExtractPullRequest will check that given mirror
+// origin url is really url.
 func ExtractPullRequest(
 	values url.Values, insecure bool,
 ) (PullRequest, error) {
