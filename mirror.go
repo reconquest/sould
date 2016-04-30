@@ -12,16 +12,23 @@ import (
 	"github.com/kovetskiy/executil"
 )
 
+// Mirror of remote git repository.
 type Mirror struct {
+	// Name is unique identifier.
 	Name string
-	URL  string
-	Dir  string
+	// URL will be passed to git for cloning and fetching updates.
+	URL string
+	// Dir is relative path to storage dir where mirror will be stored
+	Dir string
 }
 
+// String returns a string representation of mirror (name + url)
 func (mirror *Mirror) String() string {
 	return mirror.Name + " (" + mirror.URL + ")"
 }
 
+// CreateMirror creates new git mirror repository in specified storage, and
+// clones remote data using given url
 func CreateMirror(
 	storageDir string, name string, url string,
 ) (Mirror, error) {
@@ -56,6 +63,8 @@ func CreateMirror(
 	return mirror, err
 }
 
+// GetMirror looks for the mirror with specified name in specified mirror
+// storage  directory.
 func GetMirror(
 	storageDir string, name string,
 ) (Mirror, error) {
@@ -81,6 +90,7 @@ func GetMirror(
 	return mirror, nil
 }
 
+// Archive of specified git treeish will be written to given stdout writer.
 func (mirror *Mirror) Archive(
 	stdout io.Writer, treeish string,
 ) error {
@@ -92,6 +102,7 @@ func (mirror *Mirror) Archive(
 	return err
 }
 
+// Fetch remote changeset using git remote update.
 func (mirror *Mirror) Fetch() error {
 	cmd := exec.Command("git", "remote", "update")
 	cmd.Dir = mirror.Dir
@@ -99,6 +110,8 @@ func (mirror *Mirror) Fetch() error {
 	return err
 }
 
+// SpoofChangeset forcely sets branch label on specified "deattached" tag and
+// removes that tag from mirror repository.
 func (mirror *Mirror) SpoofChangeset(branch, tag string) error {
 	cmd := exec.Command("git", "branch", "--force", branch, tag)
 	cmd.Dir = mirror.Dir
@@ -117,6 +130,7 @@ func (mirror *Mirror) removeTag(tag string) error {
 	return err
 }
 
+// Clone remote repository to directory of given mirror.
 func (mirror *Mirror) Clone(url string) error {
 	cmd := exec.Command("git", "clone", "--recursive", "--mirror", url, ".")
 	cmd.Dir = mirror.Dir
@@ -124,6 +138,7 @@ func (mirror *Mirror) Clone(url string) error {
 	return err
 }
 
+// GetURL from git configuration which mirror uses for fetching changesets.
 func (mirror *Mirror) GetURL() (string, error) {
 	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
 	cmd.Dir = mirror.Dir
@@ -131,6 +146,7 @@ func (mirror *Mirror) GetURL() (string, error) {
 	return strings.TrimSpace(string(stdout)), err
 }
 
+// GetModifyDate returns last modify date of given mirror repository.
 func (mirror *Mirror) GetModifyDate() (time.Time, error) {
 	dirs := []string{
 		"refs/heads",

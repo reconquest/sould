@@ -40,6 +40,8 @@ type MirrorSlaveError struct {
 	ErrorReceive error
 }
 
+// Error returns plain one-line string representation of occurred error, this
+// method should be used for saving error to sould error logs.
 func (err MirrorSlaveError) Error() string {
 	if err.ErrorRequest != nil {
 		return err.ErrorRequest.Error()
@@ -68,6 +70,9 @@ func (err MirrorSlaveError) Error() string {
 	return message
 }
 
+// HierarchicalError returns hierarchical (with unicode symbols) string
+// representation of occurred error, this method used by hierr package for
+// sending occurred slave errors to user as part of http response.
 func (err MirrorSlaveError) HierarchicalError() string {
 	if err.ErrorRequest != nil {
 		return err.ErrorRequest.Error()

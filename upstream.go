@@ -5,8 +5,11 @@ import (
 	"sync"
 )
 
+// MirrorUpstream is representation of mirror slave set.
 type MirrorUpstream []MirrorSlave
 
+// NewMirrorUpstream creates a set of mirror slaves using specified slave
+// server addresses.
 func NewMirrorUpstream(hosts []string) MirrorUpstream {
 	upstream := MirrorUpstream{}
 	for _, host := range hosts {
@@ -16,6 +19,7 @@ func NewMirrorUpstream(hosts []string) MirrorUpstream {
 	return upstream
 }
 
+// GetHosts of given mirror slave servers.
 func (upstream MirrorUpstream) GetHosts() []string {
 	hosts := []string{}
 	for _, slave := range upstream {

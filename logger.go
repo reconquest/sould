@@ -12,7 +12,8 @@ func NewLogger() lorg.Logger {
 	return NewPrefixedLogger("")
 }
 
-// NewLogger creates new instance of pluggable logger using specified prefix.
+// NewPrefixedLogger creates new instance of pluggable logger using specified
+// prefix.
 func NewPrefixedLogger(prefix string) lorg.Logger {
 	if prefix != "" {
 		prefix += " "

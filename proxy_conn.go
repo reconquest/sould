@@ -12,7 +12,7 @@ import (
 	"github.com/kovetskiy/lorg"
 )
 
-// GitProxyConnections is representation of TCP connection with sould git proxy
+// GitProxyConnection is representation of TCP connection with sould git proxy
 // and local git daemon which runs in storage directory.
 type GitProxyConnection struct {
 	id         int64
@@ -205,18 +205,18 @@ func (connection *GitProxyConnection) validateMirror() error {
 		)
 	}
 
-	state := connection.states.GetState(mirror.Name)
+	state := connection.states.Get(mirror.Name)
 
 	fmt.Printf("XXXXXX proxy_conn.go:206: state: %#v\n", state.String())
 	if state == MirrorStateUnknown || state == MirrorStateError {
-		connection.states.SetState(mirror.Name, MirrorStateProcessing)
+		connection.states.Set(mirror.Name, MirrorStateProcessing)
 
 		connection.logger.Warning("XXXXX")
 		connection.logger.Infof("fetching mirror %s changeset", mirror.String())
 
 		err = mirror.Fetch()
 		if err != nil {
-			connection.states.SetState(
+			connection.states.Set(
 				mirror.Name, MirrorStateError,
 			)
 
@@ -228,7 +228,7 @@ func (connection *GitProxyConnection) validateMirror() error {
 
 		connection.logger.Infof("mirror %s changeset fetched", mirror.String())
 
-		connection.states.SetState(mirror.Name, MirrorStateSuccess)
+		connection.states.Set(mirror.Name, MirrorStateSuccess)
 	}
 
 	return nil

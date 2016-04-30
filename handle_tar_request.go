@@ -27,9 +27,9 @@ func (server *MirrorServer) HandleTarRequest(
 		return
 	}
 
-	mirrorState := server.states.GetState(request.MirrorName)
+	mirrorState := server.states.Get(request.MirrorName)
 	if mirrorState == MirrorStateUnknown || mirrorState == MirrorStateError {
-		server.states.SetState(request.MirrorName, MirrorStateProcessing)
+		server.states.Set(request.MirrorName, MirrorStateProcessing)
 
 		logger.Infof("fetching mirror %s changeset", mirror.String())
 
@@ -45,7 +45,7 @@ func (server *MirrorServer) HandleTarRequest(
 			mirrorState = MirrorStateSuccess
 		}
 
-		server.states.SetState(request.MirrorName, mirrorState)
+		server.states.Set(request.MirrorName, mirrorState)
 	}
 
 	modifyDate, err := mirror.GetModifyDate()

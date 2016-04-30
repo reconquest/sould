@@ -58,22 +58,25 @@ func (propagation *PullRequestPropagation) propagate() {
 	propagation.errors = errors
 }
 
-// SlaveSuccess returns slice of slaves which successfully pulled changeset.
+// SlavesSuccess returns slice of slaves which successfully pulled changeset.
 func (propagation PullRequestPropagation) SlavesSuccess() []MirrorSlave {
 	return propagation.successes
 }
 
-// SlaveErrors returns slice of complex structured errors which has been
+// SlavesErrors returns slice of complex structured errors which has been
 // occurred while propagation request to slaves.
 func (propagation PullRequestPropagation) SlavesErrors() []*MirrorSlaveError {
 	return propagation.errors
 }
 
+// IsAllSlavesFailed returns true only if given slaves upstream is not empty
+// and all slaves from given upstream are failed.
 func (propagation *PullRequestPropagation) IsAllSlavesFailed() bool {
 	return len(propagation.upstream) > 0 &&
 		len(propagation.errors) == len(propagation.upstream)
 }
 
+// IsAnySlaveFailed returns true if propagation have at least one failed slave.
 func (propagation *PullRequestPropagation) IsAnySlaveFailed() bool {
 	return len(propagation.errors) > 0
 }

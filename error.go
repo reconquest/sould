@@ -36,9 +36,9 @@ func (err FlexibleError) Error() string {
 		": " + fmt.Sprintf("%s", err.nested)
 }
 
-// Error returns hierarchical (with unicode symbols) string representation of
-// occurred error, this method used by hierr package for sending occurred slave
-// errors to user as part of http response.
+// HierarchicalError returns hierarchical (with unicode symbols) string
+// representation of occurred error, this method used by hierr package for
+// sending occurred slave errors to user as part of http response.
 func (err FlexibleError) HierarchicalError() string {
 	return hierr.Errorf(err.nested, err.format, err.args...).Error()
 }

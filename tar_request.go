@@ -23,7 +23,7 @@ func (request TarRequest) String() string {
 	)
 }
 
-// ExtractTarRequests parses given URL and extracts request for downloading tar
+// ExtractTarRequest parses given URL and extracts request for downloading tar
 // archive.
 func ExtractTarRequest(url *url.URL) (TarRequest, error) {
 	request := TarRequest{

@@ -66,7 +66,7 @@ func ExtractPullRequest(
 }
 
 func validateValues(values url.Values) error {
-	for key, _ := range values {
+	for key := range values {
 		value := strings.TrimSpace(values.Get(key))
 		if value == "" {
 			return errors.New("field '" + key + "' has an empty value")

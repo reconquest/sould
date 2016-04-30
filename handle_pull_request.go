@@ -98,11 +98,11 @@ func (server *MirrorServer) ServePullRequest(
 
 	logger.Infof("fetching mirror %s changeset", mirror.String())
 
-	server.states.SetState(request.MirrorName, MirrorStateProcessing)
+	server.states.Set(request.MirrorName, MirrorStateProcessing)
 
 	err = mirror.Fetch()
 	if err != nil {
-		server.states.SetState(request.MirrorName, MirrorStateError)
+		server.states.Set(request.MirrorName, MirrorStateError)
 		return false, NewError(err, "can't fetch changeset")
 	}
 
@@ -119,7 +119,7 @@ func (server *MirrorServer) ServePullRequest(
 
 		err = mirror.SpoofChangeset(request.SpoofingBranch, request.SpoofingTag)
 		if err != nil {
-			server.states.SetState(request.MirrorName, MirrorStateError)
+			server.states.Set(request.MirrorName, MirrorStateError)
 			return false, NewError(
 				err,
 				"can't spoof mirror changeset %s -> %s",
@@ -133,7 +133,7 @@ func (server *MirrorServer) ServePullRequest(
 		)
 	}
 
-	server.states.SetState(request.MirrorName, MirrorStateSuccess)
+	server.states.Set(request.MirrorName, MirrorStateSuccess)
 
 	return true, nil
 }
