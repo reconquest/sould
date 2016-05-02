@@ -95,6 +95,14 @@ func (server MirrorServer) IsSlave() bool {
 	return !server.IsMaster()
 }
 
+func (server MirrorServer) GetRole() string {
+	if server.IsMaster() {
+		return "master"
+	}
+
+	return "slave"
+}
+
 // GetStorageDir where to place all repository mirrors, value will be read from
 // config.
 func (server *MirrorServer) GetStorageDir() string {

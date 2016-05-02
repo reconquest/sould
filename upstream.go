@@ -19,69 +19,57 @@ func NewMirrorUpstream(hosts []string) MirrorUpstream {
 	return upstream
 }
 
-// GetHosts of given mirror slave servers.
-func (upstream MirrorUpstream) GetHosts() []string {
-	hosts := []string{}
-	for _, slave := range upstream {
-		hosts = append(hosts, string(slave))
-	}
-
-	return hosts
-}
-
-// PropagatePullRequest starts and wait all workers, which propagates POST
-// requests to sould slave servers.
-// Returns slice of successfully updated slaves and slice of slave errors,
-// which can arise via running Pull() for every slave.
-func (upstream MirrorUpstream) PropagatePullRequest(
-	httpResource *http.Client, request PullRequest,
-) (successes []MirrorSlave, errors []*MirrorSlaveError) {
+// PropagateRequest starts and wait all workers, which propagates requests to
+// sould slave servers.
+func (upstream MirrorUpstream) Propagate(
+	httpResource *http.Client, request PropagatableRequest,
+) (successes MirrorSlavesResponses, errors MirrorSlavesResponses) {
 	var (
-		workersPull     = sync.WaitGroup{}
-		workersResponse = sync.WaitGroup{}
+		workersPropagate = sync.WaitGroup{}
+		workersReceive   = sync.WaitGroup{}
 
-		responsesError   = make(chan *MirrorSlaveError)
-		responsesSuccess = make(chan MirrorSlave)
+		responsesError   = make(chan *MirrorSlaveResponse)
+		responsesSuccess = make(chan *MirrorSlaveResponse)
 	)
 
 	for _, slave := range upstream {
-		workersPull.Add(1)
+		workersPropagate.Add(1)
 
 		go func(slave MirrorSlave) {
-			defer workersPull.Done()
+			defer workersPropagate.Done()
 
-			err := slave.Pull(request, httpResource)
-			if err != nil {
-				responsesError <- err
+			response := slave.ExecuteRequest(request, httpResource)
+			if response.IsSuccess() {
+				responsesSuccess <- response
 			} else {
-				responsesSuccess <- slave
+				responsesError <- response
 			}
 		}(slave)
 	}
 
-	workersResponse.Add(1)
+	workersReceive.Add(1)
 	go func() {
 		for err := range responsesError {
 			errors = append(errors, err)
 		}
 
-		workersResponse.Done()
+		workersReceive.Done()
 	}()
 
-	workersResponse.Add(1)
+	workersReceive.Add(1)
 	go func() {
 		for slave := range responsesSuccess {
 			successes = append(successes, slave)
 		}
-		workersResponse.Done()
+		workersReceive.Done()
 	}()
 
-	workersPull.Wait()
+	workersPropagate.Wait()
 
 	close(responsesError)
 	close(responsesSuccess)
 
-	workersResponse.Wait()
+	workersReceive.Wait()
 
 	return successes, errors
 }
