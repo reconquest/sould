@@ -92,7 +92,7 @@ func (proxy *GitProxy) handle() {
 	for {
 		client, err := proxy.listener.AcceptTCP()
 		if err != nil {
-			logger.Infof("proxy connection accept failed: %s", err)
+			logger.Errorf("proxy connection accept failed: %s", err)
 			break
 		}
 
