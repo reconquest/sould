@@ -50,8 +50,8 @@ func (server *MirrorServer) HandleTarRequest(
 
 	modifyDate, err := mirror.GetModifyDate()
 	if err != nil {
-		logger.Infof(
-			"can't get mirror %s modify date",
+		logger.Errorf(
+			"can't get mirror %s modify date: %s",
 			request.MirrorName, err.Error(),
 		)
 
