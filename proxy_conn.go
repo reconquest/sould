@@ -53,7 +53,7 @@ func (connection *GitProxyConnection) Handle() {
 	connection.bootstrap()
 
 	defer func() {
-		connection.logger.Error("closing connection")
+		connection.logger.Info("closing connection")
 
 		err := connection.client.Close()
 		if err != nil {
@@ -207,11 +207,9 @@ func (connection *GitProxyConnection) validateMirror() error {
 
 	state := connection.states.Get(mirror.Name)
 
-	fmt.Printf("XXXXXX proxy_conn.go:206: state: %#v\n", state.String())
 	if state == MirrorStateUnknown || state == MirrorStateError {
 		connection.states.Set(mirror.Name, MirrorStateProcessing)
 
-		connection.logger.Warning("XXXXX")
 		connection.logger.Infof("fetching mirror %s changeset", mirror.String())
 
 		err = mirror.Fetch()
