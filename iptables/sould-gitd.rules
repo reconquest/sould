@@ -1,0 +1,7 @@
+*filter
+:INPUT ACCEPT [9:576]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [6:544]
+-A INPUT -s 127.0.0.1/32 -p tcp -m tcp --dport 9419 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 9419 -j DROP
+COMMIT
