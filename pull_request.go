@@ -17,14 +17,14 @@ type PullRequest struct {
 	// MirrorOrigin is clone/fetch URL of remote repository.
 	MirrorOrigin string `form:"origin"`
 
-	// Spoof is positional parameter which need for pre-receive feature with
+	// Spoof is positional parameter which needed for pre-receive feature with
 	// spoofing changesets.
 	Spoof bool `form:"spoof,omitempty"`
 
 	// SpoofingBranch identifies branch which will be spoofed.
 	SpoofingBranch string `form:"branch,omitempty"`
 
-	// SpoofingTar identifies tag which will be spoofed.
+	// SpoofingTag identifies tag which will be spoofed.
 	SpoofingTag string `form:"tag,omitempty"`
 }
 
@@ -37,8 +37,8 @@ func (request PullRequest) String() string {
 }
 
 // ExtractPullRequest parses post form and creates new instance of PullRequest,
-// if insecure is false (by default) then ExtractPullRequest will check that given mirror
-// origin url is really url.
+// if insecure is false (by default) then ExtractPullRequest will check that
+// given mirror origin url is really url.
 func ExtractPullRequest(
 	values url.Values, insecure bool,
 ) (PullRequest, error) {

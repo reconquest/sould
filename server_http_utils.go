@@ -14,6 +14,7 @@ func isURL(str string) bool {
 
 	var prefixes = []string{
 		"ssh://", "https://", "http://", "git://",
+		"ssh+git://", "git+ssh://",
 	}
 
 	for _, prefix := range prefixes {
