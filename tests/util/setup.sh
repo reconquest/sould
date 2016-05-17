@@ -66,8 +66,13 @@ CONFIG
         slaves+=('"'$(hostname):$(:get-port "$1")'"')
         shift
     done
-    slaves=${slaves[*]}
-    slaves=${slaves// /, }
+
+    if [[ -v slaves ]]; then
+        slaves="${slaves[@]}"
+        slaves=${slaves// /, }
+    else
+        slaves=""
+    fi
 
     @var storage :get-storage "$identifier"
     @var config :get-config "$identifier"
