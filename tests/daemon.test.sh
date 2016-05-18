@@ -15,7 +15,7 @@ tests_ensure create_commit "upstream" "foo"
 mirror_name="pool/mirror"
 
 tests_ensure request_pull $sould $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re "201 Created"
+tests_assert_stdout_re "200 OK"
 
 git_cmd="git daemon --base-path=$storage --reuseaddr --port=9419 --export-all"
 tests_background "$git_cmd"
@@ -39,7 +39,7 @@ tests_tmp_cd /
 tests_ensure rm -rf `tests_tmpdir`/cloned
 
 tests_do request_pull $sould $mirror_name `tests_tmpdir`/upstream
-tests_assert_stderr_re '500 Internal Server Error'
+tests_assert_stdout_re '500 Internal Server Error'
 
 tests_do git clone git://localhost/pool/mirror `tests_tmpdir`/cloned
 tests_assert_exitcode 128

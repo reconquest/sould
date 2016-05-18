@@ -2,6 +2,7 @@
 Description=git daemon for sould
 
 [Service]
+ExecStartPre=/usr/bin/iptables-restore -n /etc/iptables/sould-gitd.rules
 ExecStart=/usr/lib/git-core/git-daemon --export-all --base-path=/var/sould --max-connections=0 --reuseaddr --port=9419
 Restart=always
 

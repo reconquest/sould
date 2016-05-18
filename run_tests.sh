@@ -1,4 +1,5 @@
 #!/bin/bash
+
 #set -x
 
 SOULD_BIN="$(readlink -f sould)"
@@ -27,7 +28,7 @@ fi
 # read more at https://github.com/reconquest/tests.sh
 source tests/lib/tests.sh
 
-#TEST_VERBOSE=10
+TEST_VERBOSE=10
 
 cd tests/
 tests_run_all

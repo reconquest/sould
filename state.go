@@ -5,41 +5,57 @@ import (
 )
 
 const (
+	// MirrorStateUnknown is default mirror state
 	MirrorStateUnknown MirrorState = iota
+
+	// MirrorStateProcessing is used if mirror fetches remote data now.
+	MirrorStateProcessing
+
+	// MirrorStateSuccess is used if mirror has been pulled.
 	MirrorStateSuccess
-	MirrorStateFailed
+
+	// MirrorStateError is used if an error occurred during mirror pull.
+	MirrorStateError
 )
 
 type (
+	// MirrorState is representation of current state of specified mirror.
 	MirrorState int
 
-	MirrorStateTable struct {
-		lockWrite sync.Mutex
-		data      map[string]MirrorState
+	// MirrorStates is thread-safe table for storing mirror states in memory.
+	MirrorStates struct {
+		sync.Mutex
+		data map[string]MirrorState
 	}
 )
 
-func NewMirrorStateTable() *MirrorStateTable {
-	table := &MirrorStateTable{}
-	table.data = make(map[string]MirrorState)
-	return table
-}
-
+// String returns string representation of mirror's state.
 func (state MirrorState) String() string {
 	switch state {
+	case MirrorStateProcessing:
+		return "processing"
+
 	case MirrorStateSuccess:
 		return "success"
 
-	case MirrorStateFailed:
-		return "failed"
+	case MirrorStateError:
+		return "error"
 
 	default:
 		return "unknown"
 	}
 }
 
-func (table *MirrorStateTable) GetState(mirror string) MirrorState {
-	state, ok := table.data[mirror]
+// NewMirrorStates creates a new empty mirror states table.
+func NewMirrorStates() *MirrorStates {
+	states := &MirrorStates{}
+	states.data = make(map[string]MirrorState)
+	return states
+}
+
+// Get state of specified mirror.
+func (states *MirrorStates) Get(mirror string) MirrorState {
+	state, ok := states.data[mirror]
 	if ok {
 		return state
 	}
@@ -47,9 +63,10 @@ func (table *MirrorStateTable) GetState(mirror string) MirrorState {
 	return MirrorStateUnknown
 }
 
-func (table *MirrorStateTable) SetState(mirror string, state MirrorState) {
-	table.lockWrite.Lock()
-	defer table.lockWrite.Unlock()
+// Set stores information about specified mirror and state.
+func (states *MirrorStates) Set(mirror string, state MirrorState) {
+	states.Lock()
+	defer states.Unlock()
 
-	table.data[mirror] = state
+	states.data[mirror] = state
 }
