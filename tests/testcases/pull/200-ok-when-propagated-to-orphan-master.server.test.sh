@@ -1,9 +1,5 @@
 #!/bin/bash
 
-:configure-master grandma 3000 grandson granddaughter
-
-#!/bin/bash
-
 :configure-master orphan 3000
 
 :sould-start orphan --insecure
