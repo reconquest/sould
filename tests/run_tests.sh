@@ -21,5 +21,7 @@ if [ ! -f lib/tests.sh ]; then
     fi
 fi
 
+args=$@
+args=${args:--Aa}
 
-./lib/tests.sh -d testcases -s util/setup.sh -Aa $@
+./lib/tests.sh -d testcases -s util/setup.sh $args

@@ -9,6 +9,19 @@ tests:make-tmp-dir port
 tests:make-tmp-dir task
 tests:make-tmp-dir config
 
+alias @assert-http-error='
+    # --fail will suppress response
+    tests:match-re stdout "^< HTTP/1\.1 [45]0"
+    if [[ $(tests:get-exitcode) = 0 ]]; then
+        return 1
+    fi
+
+    tests:match-re stderr "^< HTTP/1\.1 [45]0"
+    if [[ $(tests:get-exitcode) = 0 ]]; then
+        return 1
+    fi
+'
+
 :get-port() {
     local identifier="$@"
 
@@ -167,6 +180,8 @@ CONFIG
 
     cp $stdout $(tests:get-tmp-dir)/response
 
+    @assert-http-error
+
     return $exitcode
 }
 
@@ -182,7 +197,31 @@ CONFIG
         --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
         "$(hostname):$(:get-port $identifier)/"
 
-    return $(tests:get-exitcode)
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
+}
+
+:request-status() {
+    local identifier="$1"
+    local format="${2:-}"
+
+    local query=""
+    if [[ "$format" ]]; then
+        query="?format=$format"
+    fi
+
+    tests:pipe curl -s -v -X GET \
+        -m 10 \
+        "$(hostname):$(:get-port $identifier)/x/status$query"
+
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
 }
 
 :request-tar() {
@@ -198,7 +237,11 @@ CONFIG
         -m 10 \
         "$(hostname):$(:get-port $identifier)/$mirror$query"
 
-    return $(tests:get-exitcode)
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
 }
 
 :git-repository() {

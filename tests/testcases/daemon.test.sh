@@ -26,7 +26,7 @@ tests:assert-stdout-re 'foo'
 
 tests:ensure rm -r attack_of_the_clones
 
-tests:eval :request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
+tests:not tests:ensure :request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re '500 Internal Server Error'
 
 :git-clone-fail sweety-slave mirror attack_of_the_clones

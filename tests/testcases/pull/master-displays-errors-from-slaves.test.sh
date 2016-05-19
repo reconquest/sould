@@ -20,7 +20,7 @@ tests:ensure ln -s /dev/null $storage_grandson
 
 tests:ensure mv upstream backup_upstream
 
-tests:eval :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
+tests:not tests:ensure :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re '< HTTP/1.1 503 Service Unavailable'
 
 tests:ensure grep -A 5 -P "slave $(hostname):$port_grandson" response
