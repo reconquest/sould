@@ -72,14 +72,6 @@ func (propagation RequestPropagation) ResponsesError() MirrorSlavesResponses {
 	return propagation.errors
 }
 
-func (propagation RequestPropagation) PercentResponsesSuccess() float64 {
-	return float64(len(propagation.successes)*100) / float64(len(propagation.upstream))
-}
-
-func (propagation RequestPropagation) PercentResponsesError() float64 {
-	return float64(len(propagation.errors)*100) / float64(len(propagation.upstream))
-}
-
 // IsAllSlavesFailed returns true only if given slaves upstream is not empty
 // and all slaves from given upstream are failed.
 func (propagation *RequestPropagation) IsAllSlavesFailed() bool {

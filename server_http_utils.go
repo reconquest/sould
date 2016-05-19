@@ -87,5 +87,9 @@ func oneLineError(err error) string {
 }
 
 func percent(complete int, total int) float64 {
+	if total == 0 {
+		return 0
+	}
+
 	return float64(complete*100) / float64(total)
 }

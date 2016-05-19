@@ -44,7 +44,7 @@ func (server *MirrorServer) ServeHTTP(
 		server.HandlePullRequest(response, pullRequest)
 
 	case method == "GET" &&
-		strings.TrimRight(request.URL.Path, "/") == "/status":
+		strings.TrimRight(request.URL.Path, "/") == "/x/status":
 
 		statusRequest := ExtractStatusRequest(request.URL)
 

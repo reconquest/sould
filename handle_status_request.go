@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
 	"github.com/BurntSushi/toml"
 	"github.com/seletskiy/hierr"
+)
+
+const (
+	Indent = "    "
 )
 
 // HandleStatusRequest handles requests for sould mirrors status.
@@ -14,32 +19,42 @@ func (server *MirrorServer) HandleStatusRequest(
 ) {
 	status := server.serveStatusRequest(request)
 
-	response.Header().Set("X-Success", "true")
-
 	var err error
+	var responseBuffer []byte
 	switch {
 	case request.FormatJSON():
-		err = json.NewEncoder(response).Encode(status)
+		responseBuffer, err = json.MarshalIndent(status, "", Indent)
 		if err != nil {
 			err = NewError(err, "can't encode json")
+			break
 		}
+
 	case request.FormatTOML():
-		err = toml.NewEncoder(response).Encode(status)
+		buffer := bytes.NewBuffer(nil)
+
+		encoder := toml.NewEncoder(buffer)
+		encoder.Indent = Indent
+		err = encoder.Encode(status)
 		if err != nil {
 			err = NewError(err, "can't encode toml")
+			break
 		}
+
+		responseBuffer = buffer.Bytes()
+
 	default:
-		response.Write([]byte(hierr.String(status)))
+		responseBuffer = []byte(hierr.String(status))
 	}
 
 	if err != nil {
-		response.Header().Set("X-Error", err.Error())
 		response.WriteHeader(http.StatusInternalServerError)
+		response.Header().Set("X-Error", err.Error())
 		return
 	}
 
-	response.Header().Set("X-Success", "true")
 	response.WriteHeader(http.StatusOK)
+	response.Header().Set("X-Success", "true")
+	response.Write(responseBuffer)
 }
 
 func (server *MirrorServer) serveStatusRequest(
@@ -54,6 +69,7 @@ func (server *MirrorServer) serveStatusRequest(
 
 	status := ServerStatus{
 		Mirrors: mirrors,
+		Total:   len(mirrors),
 	}
 
 	for _, err := range errors {
@@ -65,13 +81,15 @@ func (server *MirrorServer) serveStatusRequest(
 	}
 
 	if server.IsSlave() {
+		status.Role = "slave"
 		return status
 	}
 
 	propagation.Wait()
 
 	return MasterServerStatus{
-		Master:   status,
+		Role:     "master",
+		Server:   status,
 		Upstream: getUpstreamStatus(propagation),
 	}
 }

@@ -25,7 +25,8 @@ func (request StatusRequest) GetHTTPRequest(
 	slave MirrorSlave,
 ) (*http.Request, error) {
 	return http.NewRequest(
-		"GET", "http://"+string(slave)+"/status?format="+request.format,
+		"GET",
+		"http://"+string(slave)+"/x/status?format="+request.format,
 		nil,
 	)
 }
