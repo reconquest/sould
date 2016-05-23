@@ -167,11 +167,7 @@ CONFIG
     local name="$2"
     local origin="$3"
 
-    tests:pipe curl \
-        -s \
-        -v \
-        -X POST \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin" \
         "$(hostname):$(:get-port $identifier)/" '2>&1'
 
@@ -192,8 +188,7 @@ CONFIG
     local branch="$4"
     local tag="$5"
 
-    tests:pipe curl -s -v -X POST \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
         "$(hostname):$(:get-port $identifier)/"
 
@@ -213,8 +208,7 @@ CONFIG
         query="?format=$format"
     fi
 
-    tests:pipe curl -s -v -X GET \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X GET -m 10 \
         "$(hostname):$(:get-port $identifier)/x/status$query"
 
     local exitcode=$(tests:get-exitcode)
@@ -233,8 +227,7 @@ CONFIG
         query="?ref=$3"
     fi
 
-    tests:pipe curl -s -v -X GET \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X GET -m 10 \
         "$(hostname):$(:get-port $identifier)/$mirror$query"
 
     local exitcode=$(tests:get-exitcode)
@@ -327,6 +320,15 @@ CONFIG
 
     tests:cd-tmp-dir $repository
     tests:pipe git rev-parse HEAD
+    tests:assert-success
+    tests:cd
+}
+
+:git-modify-date() {
+    local repository="$1"
+
+    tests:cd-tmp-dir $repository
+    tests:pipe stat --printf '%Y' refs/heads
     tests:assert-success
     tests:cd
 }

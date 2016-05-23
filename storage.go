@@ -16,10 +16,6 @@ func getAllMirrors(rootDir string) ([]string, error) {
 				return err
 			}
 
-			if path == "config" && !info.IsDir() {
-				return filepath.SkipDir
-			}
-
 			if !info.IsDir() {
 				return nil
 			}
@@ -29,8 +25,13 @@ func getAllMirrors(rootDir string) ([]string, error) {
 				"/",
 			)
 
-			if mirror != "" {
+			if mirror == "" {
+				return nil
+			}
+
+			if isFileExists(filepath.Join(path, "HEAD")) {
 				mirrors = append(mirrors, mirror)
+				return filepath.SkipDir
 			}
 
 			return nil
@@ -38,4 +39,9 @@ func getAllMirrors(rootDir string) ([]string, error) {
 	)
 
 	return mirrors, err
+}
+
+func isFileExists(path string) bool {
+	stat, err := os.Stat(path)
+	return !os.IsNotExist(err) && !stat.IsDir()
 }

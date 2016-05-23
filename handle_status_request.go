@@ -1,16 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"net/http"
 
 	"github.com/BurntSushi/toml"
-	"github.com/seletskiy/hierr"
 )
 
 const (
-	Indent = "    "
+	ServerStatusResponseIndentation = "    "
 )
 
 // HandleStatusRequest handles requests for sould mirrors status.
@@ -20,30 +17,24 @@ func (server *MirrorServer) HandleStatusRequest(
 	status := server.serveStatusRequest(request)
 
 	var err error
-	var responseBuffer []byte
+	var buffer []byte
 	switch {
 	case request.FormatJSON():
-		responseBuffer, err = json.MarshalIndent(status, "", Indent)
+		buffer, err = status.JSON()
 		if err != nil {
 			err = NewError(err, "can't encode json")
 			break
 		}
 
 	case request.FormatTOML():
-		buffer := bytes.NewBuffer(nil)
-
-		encoder := toml.NewEncoder(buffer)
-		encoder.Indent = Indent
-		err = encoder.Encode(status)
+		buffer, err = status.TOML()
 		if err != nil {
 			err = NewError(err, "can't encode toml")
 			break
 		}
 
-		responseBuffer = buffer.Bytes()
-
 	default:
-		responseBuffer = []byte(hierr.String(status))
+		buffer = []byte(status.Hierarchical())
 	}
 
 	if err != nil {
@@ -54,12 +45,12 @@ func (server *MirrorServer) HandleStatusRequest(
 
 	response.WriteHeader(http.StatusOK)
 	response.Header().Set("X-Success", "true")
-	response.Write(responseBuffer)
+	response.Write(buffer)
 }
 
 func (server *MirrorServer) serveStatusRequest(
 	request StatusRequest,
-) interface{} {
+) ServerStatus {
 	var propagation *RequestPropagation
 	if server.IsMaster() {
 		propagation = server.propagateStatusRequest(request)
@@ -68,8 +59,11 @@ func (server *MirrorServer) serveStatusRequest(
 	mirrors, errors := server.getMirrorsStatuses()
 
 	status := ServerStatus{
-		Mirrors: mirrors,
-		Total:   len(mirrors),
+		BasicServerStatus: BasicServerStatus{
+			Role:    server.GetRole(),
+			Mirrors: mirrors,
+			Total:   len(mirrors),
+		},
 	}
 
 	for _, err := range errors {
@@ -87,11 +81,9 @@ func (server *MirrorServer) serveStatusRequest(
 
 	propagation.Wait()
 
-	return MasterServerStatus{
-		Role:     "master",
-		Server:   status,
-		Upstream: getUpstreamStatus(propagation),
-	}
+	status.Upstream = getUpstreamStatus(propagation)
+
+	return status
 }
 
 func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []error) {
@@ -121,7 +113,7 @@ func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []error) {
 
 		status := MirrorStatus{
 			Name:       mirror.Name,
-			State:      server.states.Get(mirror.Name),
+			State:      server.states.Get(mirror.Name).String(),
 			ModifyDate: modifyDate.Unix(),
 		}
 
@@ -185,8 +177,10 @@ func getUpstreamStatus(propagation *RequestPropagation) UpstreamStatus {
 
 	for _, response := range errors {
 		status.Slaves = append(status.Slaves, ServerStatus{
-			Address: string(response.Slave),
-			Error:   response,
+			BasicServerStatus: BasicServerStatus{
+				Address: string(response.Slave),
+				Error:   response,
+			},
 		})
 	}
 

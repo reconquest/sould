@@ -7,8 +7,8 @@
 tests:ensure :request-status grandma hierarchical
 tests:assert-no-diff-blank stdout <<RESPONSE
 status
-├─ master
-│  └─ total: 0
+├─ role: master
+├─ total: 0
 └─ upstream
    ├─ total: 0
    ├─ success: 0 (0.00%)
@@ -19,9 +19,7 @@ tests:ensure :request-status grandma json
 tests:assert-no-diff-blank stdout <<RESPONSE
 {
     "role": "master",
-    "master": {
-        "total": 0
-    },
+    "total": 0,
     "upstream": {
         "total": 0,
         "error": 0,
@@ -35,9 +33,7 @@ RESPONSE
 tests:ensure :request-status grandma toml
 tests:assert-no-diff-blank stdout <<RESPONSE
 role = "master"
-
-[master]
-    total = 0
+total = 0
 
 [upstream]
     total = 0
