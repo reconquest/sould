@@ -146,6 +146,16 @@ func (mirror *Mirror) GetURL() (string, error) {
 	return strings.TrimSpace(string(stdout)), err
 }
 
+func (mirror *Mirror) GetModifyDateUnix() (int64, error) {
+	modDate, err := mirror.GetModifyDate()
+	fmt.Printf("XXXXXX mirror.go:150: modDate: %#v\n", modDate)
+	if err != nil {
+		return 0, err
+	}
+
+	return modDate.Unix(), nil
+}
+
 // GetModifyDate returns last modify date of given mirror repository.
 func (mirror *Mirror) GetModifyDate() (time.Time, error) {
 	dirs := []string{
@@ -153,16 +163,20 @@ func (mirror *Mirror) GetModifyDate() (time.Time, error) {
 		"refs/tags",
 	}
 
-	var modDate time.Time
+	var (
+		modDate  time.Time
+		err      error
+		fileinfo os.FileInfo
+	)
 
 	for _, dir := range dirs {
-		fileinfo, err := os.Stat(mirror.Dir + "/" + dir)
+		fileinfo, err = os.Stat(mirror.Dir + "/" + dir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				continue
 			}
 
-			return modDate, err
+			break
 		}
 
 		newModDate := fileinfo.ModTime()
@@ -171,5 +185,5 @@ func (mirror *Mirror) GetModifyDate() (time.Time, error) {
 		}
 	}
 
-	return modDate, nil
+	return modDate, err
 }

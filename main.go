@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/BurntSushi/toml"
 	"github.com/docopt/docopt-go"
+	"github.com/kovetskiy/toml"
 	"github.com/seletskiy/hierr"
 	"github.com/zazab/zhash"
 )

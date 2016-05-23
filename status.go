@@ -3,7 +3,7 @@ package main
 type MirrorStatus struct {
 	Name       string `json:"name" toml:"name"`
 	State      string `json:"state" toml:"state"`
-	ModifyDate int64  `json:"modify_date" toml:"modify_date"`
+	ModifyDate int64  `json:"modify_date,omitempty,omitzero" toml:"modify_date,omitempty,omitzero"`
 }
 
 type UpstreamStatus struct {
@@ -16,11 +16,12 @@ type UpstreamStatus struct {
 }
 
 type BasicServerStatus struct {
-	Role    string         `json:"role,omitempty" toml:"role,omitempty"`
-	Address string         `json:"address,omitempty" toml:"address,omitempty"`
-	Error   error          `json:"error,omitempty" toml:"error,omitempty"`
-	Total   int            `json:"total" toml:"total"`
-	Mirrors []MirrorStatus `json:"mirrors,omitempty" toml:"mirrors,omitempty"`
+	Address           string         `json:"address,omitempty" toml:"address,omitempty"`
+	Role              string         `json:"role,omitempty" toml:"role,omitempty"`
+	Total             int            `json:"total" toml:"total"`
+	Error             string         `json:"error,omitempty" toml:"error,omitempty"`
+	HierarchicalError string         `json:"heararchical_error,omitempty" toml:"heararchical_error,omitempty"`
+	Mirrors           []MirrorStatus `json:"mirrors,omitempty" toml:"mirrors,omitempty"`
 }
 
 type ServerStatus struct {

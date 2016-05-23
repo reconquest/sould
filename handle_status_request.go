@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pquerna/ffjson/ffjson"
 )
 
 const (
@@ -20,31 +20,32 @@ func (server *MirrorServer) HandleStatusRequest(
 	var buffer []byte
 	switch {
 	case request.FormatJSON():
-		buffer, err = status.JSON()
+		buffer, err = status.MarshalJSON()
 		if err != nil {
 			err = NewError(err, "can't encode json")
 			break
 		}
 
 	case request.FormatTOML():
-		buffer, err = status.TOML()
+		buffer, err = status.MarshalTOML()
 		if err != nil {
 			err = NewError(err, "can't encode toml")
 			break
 		}
 
 	default:
-		buffer = []byte(status.Hierarchical())
+		buffer = status.MarshalHierarchical()
 	}
 
 	if err != nil {
-		response.WriteHeader(http.StatusInternalServerError)
+		logger.Errorf("%s, status: %#s", err, status)
 		response.Header().Set("X-Error", err.Error())
+		response.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	response.WriteHeader(http.StatusOK)
 	response.Header().Set("X-Success", "true")
+	response.WriteHeader(http.StatusOK)
 	response.Write(buffer)
 }
 
@@ -67,8 +68,9 @@ func (server *MirrorServer) serveStatusRequest(
 	}
 
 	for _, err := range errors {
-		if status.Error == nil {
-			status.Error = err
+		if status.Error == "" {
+			status.Error = err.Error()
+			status.HierarchicalError = err.HierarchicalError()
 		}
 
 		logger.Error(err)
@@ -86,9 +88,9 @@ func (server *MirrorServer) serveStatusRequest(
 	return status
 }
 
-func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []error) {
+func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []Error) {
 	var statuses []MirrorStatus
-	var errors []error
+	var errors []Error
 
 	mirrors, err := getAllMirrors(server.GetStorageDir())
 	if err != nil {
@@ -96,25 +98,31 @@ func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []error) {
 	}
 
 	for _, mirrorName := range mirrors {
+		status := MirrorStatus{
+			Name:       mirrorName,
+			State:      server.states.Get(mirrorName).String(),
+			ModifyDate: 0,
+		}
+
 		mirror, err := GetMirror(server.GetStorageDir(), mirrorName)
 		if err != nil {
 			errors = append(
-				errors, NewError(err, "can't get mirror %s"),
+				errors, NewError(err, "can't get mirror %s", mirrorName),
 			)
-			continue
-		}
 
-		modifyDate, err := mirror.GetModifyDate()
-		if err != nil {
-			errors = append(
-				errors, NewError(err, "can't get mirror %s modify date"),
-			)
-		}
+			status.State = "error"
+		} else {
+			status.ModifyDate, err = mirror.GetModifyDateUnix()
+			if err != nil {
+				errors = append(
+					errors, NewError(
+						err,
+						"can't get mirror %s modify date", mirrorName,
+					),
+				)
 
-		status := MirrorStatus{
-			Name:       mirror.Name,
-			State:      server.states.Get(mirror.Name).String(),
-			ModifyDate: modifyDate.Unix(),
+				status.State = "error"
+			}
 		}
 
 		statuses = append(statuses, status)
@@ -161,11 +169,22 @@ func getUpstreamStatus(propagation *RequestPropagation) UpstreamStatus {
 	for _, response := range successes {
 		var slave ServerStatus
 
-		_, err := toml.Decode(response.ResponseBody, &slave)
+		err := ffjson.Unmarshal([]byte(response.ResponseBody), &slave)
 		if err != nil {
-			status.Error++
+			logger.Errorf(
+				"can't decode JSON response from %s: %s, response:\n%s",
+				response.Slave, err, response.ResponseBody,
+			)
 
-			slave.Error = NewError(err, "can't decode toml response")
+			err := NewError(
+				err,
+				"can't decode JSON response",
+			)
+
+			slave.Error = err.Error()
+			slave.HierarchicalError = err.HierarchicalError()
+
+			status.Error++
 		} else {
 			status.Success++
 		}
@@ -178,8 +197,9 @@ func getUpstreamStatus(propagation *RequestPropagation) UpstreamStatus {
 	for _, response := range errors {
 		status.Slaves = append(status.Slaves, ServerStatus{
 			BasicServerStatus: BasicServerStatus{
-				Address: string(response.Slave),
-				Error:   response,
+				Address:           string(response.Slave),
+				Error:             response.Error(),
+				HierarchicalError: response.HierarchicalError(),
 			},
 		})
 	}

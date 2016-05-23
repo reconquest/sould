@@ -26,7 +26,7 @@ func (request StatusRequest) GetHTTPRequest(
 ) (*http.Request, error) {
 	return http.NewRequest(
 		"GET",
-		"http://"+string(slave)+"/x/status?format="+request.format,
+		"http://"+string(slave)+"/x/status?format=json",
 		nil,
 	)
 }

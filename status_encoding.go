@@ -7,22 +7,32 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/BurntSushi/toml"
+	"github.com/kovetskiy/toml"
 	"github.com/pquerna/ffjson/ffjson"
 	"github.com/seletskiy/hierr"
 )
 
-func (status ServerStatus) JSON() ([]byte, error) {
+type resetter ServerStatus
+
+func (*resetter) MarshalJSON() {}
+func (*resetter) MarshalTOML() {}
+
+var (
+	_ json.Marshaler = ServerStatus{}
+	_ toml.Marshaler = ServerStatus{}
+)
+
+func (status ServerStatus) MarshalJSON() ([]byte, error) {
 	var (
 		buffer bytes.Buffer
 		data   []byte
 		err    error
 	)
 
-	if status.Role == "slave" {
-		data, err = ffjson.Marshal(status.BasicServerStatus)
+	if status.Role == "master" {
+		data, err = ffjson.Marshal(resetter(status))
 	} else {
-		data, err = ffjson.Marshal(status)
+		data, err = ffjson.Marshal(status.BasicServerStatus)
 	}
 
 	err = json.Indent(&buffer, data, "", ServerStatusResponseIndentation)
@@ -34,14 +44,14 @@ func (status ServerStatus) JSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func (status ServerStatus) TOML() ([]byte, error) {
+func (status ServerStatus) MarshalTOML() ([]byte, error) {
 	var buffer bytes.Buffer
 	var err error
 
 	encoder := toml.NewEncoder(&buffer)
 	encoder.Indent = ServerStatusResponseIndentation
 	if status.Role == "master" {
-		err = encoder.Encode(status)
+		err = encoder.Encode(resetter(status))
 	} else {
 		err = encoder.Encode(status.BasicServerStatus)
 	}
@@ -49,7 +59,7 @@ func (status ServerStatus) TOML() ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
-func (status ServerStatus) Hierarchical() string {
+func (status ServerStatus) MarshalHierarchical() []byte {
 	var hierarchy error
 	if status.Address != "" {
 		hierarchy = hierr.Push(status.Address)
@@ -60,17 +70,17 @@ func (status ServerStatus) Hierarchical() string {
 		)
 	}
 
-	if status.Error != nil {
-		hierarchy = hierr.Push(
-			"error",
-			status.Error,
-		)
-	}
-
 	hierarchy = hierr.Push(
 		hierarchy,
 		fmt.Sprintf("total: %d", len(status.Mirrors)),
 	)
+
+	if status.HierarchicalError != "" {
+		hierarchy = hierr.Push(
+			hierarchy,
+			hierr.Push("error", status.HierarchicalError),
+		)
+	}
 
 	if len(status.Mirrors) > 0 {
 		mirrors := errors.New("mirrors")
@@ -84,17 +94,23 @@ func (status ServerStatus) Hierarchical() string {
 		hierarchy = hierr.Push(hierarchy, status.Upstream.Hierarchical())
 	}
 
-	return hierr.String(hierarchy)
+	return []byte(hierr.String(hierarchy))
 }
 
 func (status MirrorStatus) Hierarchical() string {
-	return hierr.String(
-		hierr.Push(
-			status.Name,
-			fmt.Sprintf("state: %s", status.State),
-			fmt.Sprintf("modify date: %v", status.ModifyDate),
-		),
+	hierarchy := hierr.Push(
+		status.Name,
+		fmt.Sprintf("state: %s", status.State),
 	)
+
+	if status.ModifyDate > 0 {
+		hierarchy = hierr.Push(
+			hierarchy,
+			fmt.Sprintf("modify date: %v", status.ModifyDate),
+		)
+	}
+
+	return hierr.String(hierarchy)
 }
 
 func (status UpstreamStatus) Hierarchical() string {
@@ -114,7 +130,7 @@ func (status UpstreamStatus) Hierarchical() string {
 	if len(status.Slaves) > 0 {
 		slaves := errors.New("slaves")
 		for _, slave := range status.Slaves {
-			slaves = hierr.Push(slaves, slave.Hierarchical())
+			slaves = hierr.Push(slaves, slave.MarshalHierarchical())
 		}
 
 		hierarchy = hierr.Push(hierarchy, slaves)
