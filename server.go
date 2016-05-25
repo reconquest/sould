@@ -95,6 +95,9 @@ func (server MirrorServer) IsSlave() bool {
 	return !server.IsMaster()
 }
 
+// GetRole returns string representation of server role basing on server
+// configuration.
+// Can be: master or slave.
 func (server MirrorServer) GetRole() string {
 	if server.IsMaster() {
 		return "master"

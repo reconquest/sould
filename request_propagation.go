@@ -19,8 +19,8 @@ type RequestPropagation struct {
 	errors    MirrorSlavesResponses
 }
 
-// NewPullRequestPropagation returns reference to operation of propagation pull
-// request  basing on given request and using given http client and mirror
+// NewRequestPropagation returns reference to operation of propagation
+// http request basing on given request and using given http client and mirror
 // upstream.
 func NewRequestPropagation(
 	httpResource *http.Client,
@@ -60,7 +60,7 @@ func (propagation *RequestPropagation) propagate() {
 	propagation.errors = errors
 }
 
-// ResponsesError returns slice of complex structured responses from success
+// ResponsesSuccess returns slice of complex structured responses from success
 // slaves.
 func (propagation RequestPropagation) ResponsesSuccess() MirrorSlavesResponses {
 	return propagation.successes

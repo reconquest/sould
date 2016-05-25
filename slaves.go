@@ -8,8 +8,8 @@ import (
 // MirrorSlave is representation of slave sould server.
 type MirrorSlave string
 
-// Pull creates and sends HTTP request basing on given PullRequest variable to
-// given slave server using given http client.
+// ExecuteRequest creates and sends HTTP request basing on given propagatable
+// request variable to given slave server using given http client.
 func (slave MirrorSlave) ExecuteRequest(
 	request PropagatableRequest,
 	httpResource *http.Client,

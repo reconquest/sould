@@ -19,7 +19,7 @@ func NewMirrorUpstream(hosts []string) MirrorUpstream {
 	return upstream
 }
 
-// PropagateRequest starts and wait all workers, which propagates requests to
+// Propagate starts and wait all workers, which propagates requests to
 // sould slave servers.
 func (upstream MirrorUpstream) Propagate(
 	httpResource *http.Client, request PropagatableRequest,

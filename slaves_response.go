@@ -6,6 +6,7 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
+// MirrorSlavesResponses is a set of slave responses, usable for batching.
 type MirrorSlavesResponses []*MirrorSlaveResponse
 
 // GetHosts of given mirror slave servers.
@@ -138,6 +139,7 @@ func (response MirrorSlaveResponse) HierarchicalError() string {
 	return hierarchical.Error()
 }
 
+// IsSuccess returns true if given response looks like a succeed request.
 func (response MirrorSlaveResponse) IsSuccess() bool {
 	return response.HeaderXSuccess == "true"
 }

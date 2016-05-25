@@ -38,6 +38,7 @@ func (request *PullRequest) String() string {
 	)
 }
 
+// GetHTTPRequest which can be executed basing on given pull request data.
 func (request *PullRequest) GetHTTPRequest(
 	slave MirrorSlave,
 ) (*http.Request, error) {

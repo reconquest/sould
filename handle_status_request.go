@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	// ServerStatusResponseIndentation uses for json and toml marshalers.
 	ServerStatusResponseIndentation = "    "
 )
 
@@ -38,7 +39,7 @@ func (server *MirrorServer) HandleStatusRequest(
 	}
 
 	if err != nil {
-		logger.Errorf("%s, status: %#s", err, status)
+		logger.Errorf("%s, status: %#v", err, status)
 		response.Header().Set("X-Error", err.Error())
 		response.WriteHeader(http.StatusInternalServerError)
 		return

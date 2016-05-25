@@ -12,6 +12,8 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
+// resetter resets structure marshal methods, so resetter doesn't implements
+// json.Marshaler and toml.Marshaler
 type resetter ServerStatus
 
 func (*resetter) MarshalJSON() {}
@@ -22,6 +24,8 @@ var (
 	_ toml.Marshaler = ServerStatus{}
 )
 
+// MarshalJSON will be called by json.Marshal it will return json
+// representation of server's status.
 func (status ServerStatus) MarshalJSON() ([]byte, error) {
 	var (
 		buffer bytes.Buffer
@@ -45,6 +49,8 @@ func (status ServerStatus) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// MarshalTOML will be called by toml.Marshal it will return toml
+// representation of server's status.
 func (status ServerStatus) MarshalTOML() ([]byte, error) {
 	var buffer bytes.Buffer
 	var err error
@@ -61,6 +67,8 @@ func (status ServerStatus) MarshalTOML() ([]byte, error) {
 	return buffer.Bytes(), err
 }
 
+// MarshalHierarchical returns hierarchical string representation.
+// It's very useful for humans.
 func (status ServerStatus) MarshalHierarchical() []byte {
 	var hierarchy error
 	if status.Address != "" {
@@ -93,19 +101,20 @@ func (status ServerStatus) MarshalHierarchical() []byte {
 	if len(status.Mirrors) > 0 {
 		mirrors := errors.New("mirrors")
 		for _, mirror := range status.Mirrors {
-			mirrors = hierr.Push(mirrors, mirror.Hierarchical())
+			mirrors = hierr.Push(mirrors, mirror.MarshalHierarchical())
 		}
 		hierarchy = hierr.Push(hierarchy, mirrors)
 	}
 
 	if status.Role == "master" {
-		hierarchy = hierr.Push(hierarchy, status.Upstream.Hierarchical())
+		hierarchy = hierr.Push(hierarchy, status.Upstream.MarshalHierarchical())
 	}
 
 	return []byte(hierr.String(hierarchy))
 }
 
-func (status MirrorStatus) Hierarchical() string {
+// MarshalHierarchical returns hierarchical string representation.
+func (status MirrorStatus) MarshalHierarchical() string {
 	hierarchy := hierr.Push(
 		status.Name,
 		fmt.Sprintf("state: %s", status.State),
@@ -121,7 +130,8 @@ func (status MirrorStatus) Hierarchical() string {
 	return hierr.String(hierarchy)
 }
 
-func (status UpstreamStatus) Hierarchical() string {
+// MarshalHierarchical returns hierarchical string representation.
+func (status UpstreamStatus) MarshalHierarchical() string {
 	hierarchy := hierr.Push(
 		"upstream",
 		"total: "+strconv.Itoa(status.Total),

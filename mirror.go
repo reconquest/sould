@@ -146,9 +146,10 @@ func (mirror *Mirror) GetURL() (string, error) {
 	return strings.TrimSpace(string(stdout)), err
 }
 
+// GetModifyDateUnix calls GetModifyDate and returns unix timestamp
+// representation.
 func (mirror *Mirror) GetModifyDateUnix() (int64, error) {
 	modDate, err := mirror.GetModifyDate()
-	fmt.Printf("XXXXXX mirror.go:150: modDate: %#v\n", modDate)
 	if err != nil {
 		return 0, err
 	}
