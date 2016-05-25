@@ -26,7 +26,9 @@ status
    ├─ error: 0 (0.00%)
    │
    └─ slaves
-      └─ $(hostname):$port_pretty
+      └─ $_hostname:$port_pretty
+         ├─ role: slave
+         │
          ├─ total: 1
          │
          ├─ error
@@ -53,11 +55,11 @@ tests:assert-no-diff stdout <<RESPONSE
         "success_percent": 100,
         "slaves": [
             {
-                "address": "$(hostname):$port_pretty",
+                "address": "$_hostname:$port_pretty",
                 "role": "slave",
                 "total": 1,
                 "error": "can't get mirror pool/x: exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error (exit status 1) without output",
-                "heararchical_error": "can't get mirror pool/x\n└─ exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error\n   └─ exit status 1\n      └─ output data is empty",
+                "hierarchical_error": "can't get mirror pool/x\n└─ exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error\n   └─ exit status 1\n      └─ output data is empty",
                 "mirrors": [
                     {
                         "name": "pool/x",
@@ -83,9 +85,9 @@ total = 0
     success_percent = 100.0
 
     [[upstream.slaves]]
-        address = "$(hostname):$port_pretty"
+        address = "$_hostname:$port_pretty"
         error = "can't get mirror pool/x: exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error (exit status 1) without output"
-        heararchical_error = "can't get mirror pool/x\n└─ exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error\n   └─ exit status 1\n      └─ output data is empty"
+        hierarchical_error = "can't get mirror pool/x\n└─ exec [\"git\" \"config\" \"--get\" \"remote.origin.url\"] error\n   └─ exit status 1\n      └─ output data is empty"
         role = "slave"
         total = 1
 

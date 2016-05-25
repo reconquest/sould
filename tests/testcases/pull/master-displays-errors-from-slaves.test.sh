@@ -23,9 +23,9 @@ tests:ensure mv upstream backup_upstream
 tests:not tests:ensure :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re '< HTTP/1.1 503 Service Unavailable'
 
-tests:ensure grep -A 5 -P "slave $(hostname):$port_grandson" response
+tests:ensure grep -A 5 -P "slave $_hostname:$port_grandson" response
 tests:assert-stdout-re "500 Internal Server Error"
 tests:assert-stdout-re "$storage_grandson/ma/fork: not a directory"
 
-tests:ensure grep -A 1 -P "slave $(hostname):$port_granddaughter" response
+tests:ensure grep -A 1 -P "slave $_hostname:$port_granddaughter" response
 tests:assert-stdout-re "500 Internal Server Error"

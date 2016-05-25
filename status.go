@@ -20,7 +20,7 @@ type BasicServerStatus struct {
 	Role              string         `json:"role,omitempty" toml:"role,omitempty"`
 	Total             int            `json:"total" toml:"total"`
 	Error             string         `json:"error,omitempty" toml:"error,omitempty"`
-	HierarchicalError string         `json:"heararchical_error,omitempty" toml:"heararchical_error,omitempty"`
+	HierarchicalError string         `json:"hierarchical_error,omitempty" toml:"hierarchical_error,omitempty"`
 	Mirrors           []MirrorStatus `json:"mirrors,omitempty" toml:"mirrors,omitempty"`
 }
 

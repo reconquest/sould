@@ -21,6 +21,9 @@ alias @assert-http-error='
         return 1
     fi
 '
+_hostname=$(hostname)
+# there is echo for bullshit whitespace at the end of line
+_hostname_address=$(echo $(hostname --ip-address))
 
 :get-port() {
     local identifier="$@"

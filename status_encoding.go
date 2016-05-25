@@ -32,6 +32,7 @@ func (status ServerStatus) MarshalJSON() ([]byte, error) {
 	if status.Role == "master" {
 		data, err = ffjson.Marshal(resetter(status))
 	} else {
+		status.Role = "slave"
 		data, err = ffjson.Marshal(status.BasicServerStatus)
 	}
 
@@ -53,6 +54,7 @@ func (status ServerStatus) MarshalTOML() ([]byte, error) {
 	if status.Role == "master" {
 		err = encoder.Encode(resetter(status))
 	} else {
+		status.Role = "slave"
 		err = encoder.Encode(status.BasicServerStatus)
 	}
 
@@ -64,11 +66,17 @@ func (status ServerStatus) MarshalHierarchical() []byte {
 	if status.Address != "" {
 		hierarchy = hierr.Push(status.Address)
 	} else {
-		hierarchy = hierr.Push(
-			"status",
-			fmt.Sprintf("role: %s", status.Role),
-		)
+		hierarchy = hierr.Push("status")
 	}
+
+	if status.Role != "master" {
+		status.Role = "slave"
+	}
+
+	hierarchy = hierr.Push(
+		hierarchy,
+		fmt.Sprintf("role: %s", status.Role),
+	)
 
 	hierarchy = hierr.Push(
 		hierarchy,

@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/seletskiy/hierr"
 )
@@ -140,6 +139,5 @@ func (response MirrorSlaveResponse) HierarchicalError() string {
 }
 
 func (response MirrorSlaveResponse) IsSuccess() bool {
-	fmt.Printf("XXXXXX slaves_response.go:141: response.HeaderXSuccess: %#v\n", response.HeaderXSuccess)
 	return response.HeaderXSuccess == "true"
 }
