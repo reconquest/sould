@@ -12,9 +12,13 @@ import (
 	"github.com/zazab/zhash"
 )
 
-const usage = `SOULD 3.0
+var (
+	version = `3.1`
+
+	usage = `SOULD ` + version + `
 
 The scalable failover service for mirroring git repositories.
+https://github.com/reconquest/sould
 
 Usage:
 	sould [-c <config>] [--insecure]
@@ -26,14 +30,16 @@ Options:
 				 In this mode sould will be able to give access to ANY local
 				 repository readable by sould process.
 				 It's inteded for tests only, so use with care.
+
 `
+)
 
 var (
 	logger = NewLogger()
 )
 
 func main() {
-	args, err := docopt.Parse(usage, nil, true, "3.0", false)
+	args, err := docopt.Parse(usage, nil, true, version, false)
 	if err != nil {
 		logger.Fatal(err)
 	}
