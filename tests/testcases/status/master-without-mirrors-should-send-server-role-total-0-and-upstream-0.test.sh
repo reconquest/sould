@@ -5,7 +5,7 @@
 :sould-start grandma
 
 tests:ensure \
-	:request-status grandma hierarchical
+    :request-status grandma hierarchical
 tests:assert-no-diff-blank stdout <<RESPONSE
 status
 ├─ role: master
@@ -17,7 +17,7 @@ status
 RESPONSE
 
 tests:ensure \
-	:request-status grandma json
+    :request-status grandma json
 tests:assert-no-diff-blank stdout <<RESPONSE
 {
     "role": "master",
@@ -33,7 +33,7 @@ tests:assert-no-diff-blank stdout <<RESPONSE
 RESPONSE
 
 tests:ensure \
-	:request-status grandma toml
+    :request-status grandma toml
 tests:assert-no-diff-blank stdout <<RESPONSE
 role = "master"
 total = 0

@@ -10,7 +10,7 @@
 :git-commit     upstream foo
 
 tests:ensure \
-	:request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
+    :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 
 @var storage_grandson      :get-storage grandson
 @var port_grandson         :get-port grandson
@@ -22,7 +22,7 @@ tests:ensure ln -s /dev/null $storage_grandson
 tests:ensure mv upstream backup_upstream
 
 tests:not tests:ensure \
-	:request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
+    :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re '< HTTP/1.1 503 Service Unavailable'
 
 tests:ensure grep -A 5 -P "slave $_hostname:$port_grandson" response

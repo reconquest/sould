@@ -17,7 +17,7 @@
 :git-tag    upstream tag-before-c -d
 
 tests:ensure \
-	:request-pull-with-spoof \
+    :request-pull-with-spoof \
     master \
     mirror/for/upstream \
     $(tests:get-tmp-dir)/upstream \

@@ -6,7 +6,7 @@
 :git-commit     upstream foo
 
 tests:ensure \
-	:request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
+    :request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re "200 OK"
 
 :git-server-start sweety-slave
@@ -28,7 +28,7 @@ tests:assert-stdout-re 'foo'
 tests:ensure rm -r attack_of_the_clones
 
 tests:not tests:ensure \
-	:request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
+    :request-pull sweety-slave mirror $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re '500 Internal Server Error'
 
 :git-clone-fail sweety-slave mirror attack_of_the_clones

@@ -10,5 +10,5 @@
 :git-commit     upstream foo
 
 tests:ensure \
-	:request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
+    :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 tests:assert-stdout-re "200 OK"

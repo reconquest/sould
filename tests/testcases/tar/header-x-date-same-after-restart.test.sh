@@ -17,12 +17,12 @@ tests:assert-stderr-re "X-Date:"
 tests:ensure mv upstream x
 
 tests:ensure \
-	:request-tar little-slave mir/ror ">" archive2.tar
+    :request-tar little-slave mir/ror ">" archive2.tar
 tests:assert-stderr-re "$header_x_date"
 
 :sould-stop little-slave
 :sould-start little-slave --insecure
 
 tests:ensure \
-	:request-tar little-slave mir/ror ">" archive3.tar
+    :request-tar little-slave mir/ror ">" archive3.tar
 tests:assert-stderr-re "$header_x_date"
