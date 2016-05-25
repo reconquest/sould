@@ -6,14 +6,16 @@
 :git-repository upstream
 :git-commit     upstream foo
 
-tests:ensure :request-pull pretty pool/x $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull pretty pool/x $(tests:get-tmp-dir)/upstream
 
 @var storage_pretty :get-storage pretty
 @var port_pretty :get-port pretty
 
 tests:ensure rm -r $storage_pretty/pool/x/refs/
 
-tests:ensure :request-status master hierarchical
+tests:ensure \
+	:request-status master hierarchical
 tests:assert-no-diff stdout <<RESPONSE
 status
 ├─ role: master
@@ -42,7 +44,8 @@ status
                └─ state: error
 RESPONSE
 
-tests:ensure :request-status master json
+tests:ensure \
+	:request-status master json
 tests:assert-no-diff stdout <<RESPONSE
 {
     "role": "master",
@@ -72,7 +75,8 @@ tests:assert-no-diff stdout <<RESPONSE
 }
 RESPONSE
 
-tests:ensure :request-status master toml
+tests:ensure \
+	:request-status master toml
 tests:assert-no-diff stdout <<RESPONSE
 role = "master"
 total = 0

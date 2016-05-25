@@ -6,14 +6,16 @@
 :git-repository upstream
 :git-commit     upstream foo
 
-tests:ensure :request-pull pretty pool/x $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull pretty pool/x $(tests:get-tmp-dir)/upstream
 
 @var storage_pretty :get-storage pretty
 @var modify_date_pretty :git-modify-date $storage_pretty/pool/x
 @var port_pretty :get-port pretty
 @var port_sweety :get-port sweety
 
-tests:ensure :request-status master hierarchical
+tests:ensure \
+	:request-status master hierarchical
 tests:assert-no-diff stdout <<RESPONSE
 status
 ├─ role: master
@@ -44,7 +46,8 @@ status
             └─ Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused
 RESPONSE
 
-tests:ensure :request-status master json
+tests:ensure \
+	:request-status master json
 tests:assert-no-diff stdout <<RESPONSE
 {
     "role": "master",
@@ -80,7 +83,8 @@ tests:assert-no-diff stdout <<RESPONSE
 }
 RESPONSE
 
-tests:ensure :request-status master toml
+tests:ensure \
+	:request-status master toml
 tests:assert-no-diff stdout <<RESPONSE
 role = "master"
 total = 0

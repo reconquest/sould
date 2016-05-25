@@ -9,7 +9,8 @@
 :git-repository upstream
 :git-commit     upstream foo
 
-tests:ensure :request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull grandma ma/fork $(tests:get-tmp-dir)/upstream
 
 @var storage_grandson      :get-storage grandson
 @var storage_granddaughter :get-storage granddaughter

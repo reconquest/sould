@@ -15,7 +15,7 @@ type StatusRequest struct {
 
 // FormatJSON returns true if server should response in JSON format.
 func (request StatusRequest) FormatJSON() bool {
-	return request.format == "toml"
+	return request.format == "json"
 }
 
 // FormatTOML returns true if server should response in TOML format.

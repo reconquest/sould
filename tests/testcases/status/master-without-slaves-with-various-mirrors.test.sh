@@ -5,9 +5,12 @@
 :git-repository upstream
 :git-commit     upstream foo
 
-tests:ensure :request-pull master pool/x $(tests:get-tmp-dir)/upstream
-tests:ensure :request-pull master pool/y $(tests:get-tmp-dir)/upstream
-tests:ensure :request-pull master pool/z $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull master pool/x $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull master pool/y $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull master pool/z $(tests:get-tmp-dir)/upstream
 
 tests:ensure rm -r upstream
 tests:eval :request-pull master pool/z $(tests:get-tmp-dir)/upstream
@@ -16,7 +19,8 @@ tests:eval :request-pull master pool/z $(tests:get-tmp-dir)/upstream
 @var modify_date_y :git-modify-date $storage/pool/y
 @var modify_date_z :git-modify-date $storage/pool/z
 
-tests:ensure :request-status master hierarchical
+tests:ensure \
+	:request-status master hierarchical
 tests:assert-no-diff stdout <<RESPONSE
 status
 ├─ role: master
@@ -40,7 +44,8 @@ status
    └─ error: 0 (0.00%)
 RESPONSE
 
-tests:ensure :request-status master json
+tests:ensure \
+	:request-status master json
 tests:assert-no-diff stdout <<RESPONSE
 {
     "role": "master",
@@ -72,7 +77,8 @@ tests:assert-no-diff stdout <<RESPONSE
 }
 RESPONSE
 
-tests:ensure :request-status master toml
+tests:ensure \
+	:request-status master toml
 tests:assert-no-diff stdout <<RESPONSE
 role = "master"
 total = 3

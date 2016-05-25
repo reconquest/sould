@@ -4,9 +4,12 @@
 :git-repository upstream
 :git-commit     upstream foo
 
-tests:ensure :request-pull orphan pool/x $(tests:get-tmp-dir)/upstream
-tests:ensure :request-pull orphan pool/y $(tests:get-tmp-dir)/upstream
-tests:ensure :request-pull orphan pool/z $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull orphan pool/x $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull orphan pool/y $(tests:get-tmp-dir)/upstream
+tests:ensure \
+	:request-pull orphan pool/z $(tests:get-tmp-dir)/upstream
 
 tests:ensure rm -r upstream
 tests:eval :request-pull orphan pool/z $(tests:get-tmp-dir)/upstream
@@ -15,7 +18,8 @@ tests:eval :request-pull orphan pool/z $(tests:get-tmp-dir)/upstream
 @var modify_date_y :git-modify-date $storage/pool/y
 @var modify_date_z :git-modify-date $storage/pool/z
 
-tests:ensure :request-status orphan hierarchical
+tests:ensure \
+	:request-status orphan hierarchical
 tests:assert-no-diff stdout <<RESPONSE
 status
 ├─ role: slave
@@ -34,7 +38,8 @@ status
       └─ modify date: $modify_date_z
 RESPONSE
 
-tests:ensure :request-status orphan json
+tests:ensure \
+	:request-status orphan json
 tests:assert-no-diff stdout <<RESPONSE
 {
     "role": "slave",
@@ -59,7 +64,8 @@ tests:assert-no-diff stdout <<RESPONSE
 }
 RESPONSE
 
-tests:ensure :request-status orphan toml
+tests:ensure \
+	:request-status orphan toml
 tests:assert-no-diff stdout <<RESPONSE
 role = "slave"
 total = 3
