@@ -5,5 +5,6 @@
 :git-repository upstream
 :git-commit upstream file_foo
 
-tests:eval :request-tar little-slave mir/ror
+tests:not tests:ensure \
+    :request-tar little-slave mir/ror
 tests:assert-stderr-re "404 Not Found"

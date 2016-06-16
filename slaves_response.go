@@ -6,11 +6,24 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
-// MirrorSlaveError represents information about occurred error while working
-// with sould slave server.
+// MirrorSlavesResponses is a set of slave responses, usable for batching.
+type MirrorSlavesResponses []*MirrorSlaveResponse
+
+// GetHosts of given mirror slave servers.
+func (responses MirrorSlavesResponses) GetHosts() []string {
+	hosts := []string{}
+	for _, response := range responses {
+		hosts = append(hosts, string(response.Slave))
+	}
+
+	return hosts
+}
+
+// MirrorSlaveResponse represents information about result of request
+// propagation to sould slave server.
 //
-// Also, MirrorSlaveError implements Error interfaces.
-type MirrorSlaveError struct {
+// Also, MirrorSlaveResponse implements Error interfaces.
+type MirrorSlaveResponse struct {
 	// Slave is problematic mirror slave server.
 	Slave MirrorSlave
 
@@ -31,6 +44,8 @@ type MirrorSlaveError struct {
 	// server response.
 	HeaderXError string
 
+	HeaderXSuccess string
+
 	// ErrorRequest is error which has been occurred in http communication
 	// session with slave server.
 	ErrorRequest error
@@ -42,27 +57,27 @@ type MirrorSlaveError struct {
 
 // Error returns plain one-line string representation of occurred error, this
 // method should be used for saving error to sould error logs.
-func (err MirrorSlaveError) Error() string {
-	if err.ErrorRequest != nil {
-		return err.ErrorRequest.Error()
+func (response MirrorSlaveResponse) Error() string {
+	if response.ErrorRequest != nil {
+		return response.ErrorRequest.Error()
 	}
 
-	if len(err.HeaderXError) > 0 {
-		return "received response with status " + err.Status +
-			": " + err.HeaderXError
+	if len(response.HeaderXError) > 0 {
+		return "received response with status " + response.Status +
+			": " + response.HeaderXError
 	}
 
 	message := "received unexpected and ambigious response with status " +
-		err.Status + ", without X-Error header"
+		response.Status + ", without X-Error header"
 
-	if err.ErrorReceive != nil {
+	if response.ErrorReceive != nil {
 		message += ", and an error occurred while " +
-			"receiving response: " + err.ErrorReceive.Error()
+			"receiving response: " + response.ErrorReceive.Error()
 	}
 
 	message += ", received response body"
-	if len(err.ResponseBody) > 0 {
-		message += ": " + err.ResponseBody
+	if len(response.ResponseBody) > 0 {
+		message += ": " + response.ResponseBody
 	} else {
 		message += " is empty"
 	}
@@ -73,26 +88,26 @@ func (err MirrorSlaveError) Error() string {
 // HierarchicalError returns hierarchical (with unicode symbols) string
 // representation of occurred error, this method used by hierr package for
 // sending occurred slave errors to user as part of http response.
-func (err MirrorSlaveError) HierarchicalError() string {
-	if err.ErrorRequest != nil {
-		return err.ErrorRequest.Error()
+func (response MirrorSlaveResponse) HierarchicalError() string {
+	if response.ErrorRequest != nil {
+		return response.ErrorRequest.Error()
 	}
 
-	hierarchical := errors.New(err.Status)
+	hierarchical := errors.New(response.Status)
 
-	if err.ErrorReceive != nil {
-		hierarchical = hierr.Push(hierarchical, err.ErrorReceive)
+	if response.ErrorReceive != nil {
+		hierarchical = hierr.Push(hierarchical, response.ErrorReceive)
 	}
 
-	if len(err.ResponseBody) > 0 {
-		if len(err.HeaderXError) > 0 {
-			hierarchical = hierr.Push(hierarchical, err.ResponseBody)
+	if len(response.ResponseBody) > 0 {
+		if len(response.HeaderXError) > 0 {
+			hierarchical = hierr.Push(hierarchical, response.ResponseBody)
 		} else {
 			hierarchical = hierr.Push(
 				hierarchical,
 				"X-Error header is missing",
 				hierr.Errorf(
-					err.ResponseBody,
+					response.ResponseBody,
 					"unexpected and ambigious response body",
 				),
 			)
@@ -104,15 +119,15 @@ func (err MirrorSlaveError) HierarchicalError() string {
 	hierarchical = hierr.Push(
 		hierarchical,
 		hierr.Errorf(
-			err.ResponseBody,
+			response.ResponseBody,
 			"unexpected and ambigious response without body",
 		),
 	)
 
-	if len(err.HeaderXError) > 0 {
+	if len(response.HeaderXError) > 0 {
 		hierarchical = hierr.Push(
 			hierarchical,
-			err.HeaderXError,
+			response.HeaderXError,
 		)
 	} else {
 		hierarchical = hierr.Push(
@@ -122,4 +137,9 @@ func (err MirrorSlaveError) HierarchicalError() string {
 	}
 
 	return hierarchical.Error()
+}
+
+// IsSuccess returns true if given response looks like a succeed request.
+func (response MirrorSlaveResponse) IsSuccess() bool {
+	return response.HeaderXSuccess == "true"
 }

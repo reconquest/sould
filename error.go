@@ -8,37 +8,28 @@ import (
 
 // Error is smart and flexible string representation of occurred error, can be
 // printed as plain one-line string or as hierarchical multi-leveled error.
-type Error interface {
-	error
-	hierr.HierarchicalError
+type Error struct {
+	Message string
+	Nested  interface{}
 }
 
-// FlexibleError implements Error interface.
-type FlexibleError struct {
-	format string
-	args   []interface{}
-	nested interface{}
-}
-
-// NewError returns instance of FlexibleError which implements Error interface.
-func NewError(nested interface{}, format string, args ...interface{}) error {
-	return FlexibleError{
-		format: format,
-		args:   args,
-		nested: nested,
+// NewError returns instance of Error
+func NewError(Nested interface{}, format string, args ...interface{}) Error {
+	return Error{
+		Message: fmt.Sprintf(format, args...),
+		Nested:  Nested,
 	}
 }
 
 // Error returns plain one-line string representation of occurred error, this
 // method should be used for saving error to sould error logs.
-func (err FlexibleError) Error() string {
-	return fmt.Sprintf(err.format, err.args...) +
-		": " + fmt.Sprintf("%s", err.nested)
+func (err Error) Error() string {
+	return err.Message + ": " + fmt.Sprintf("%s", err.Nested)
 }
 
 // HierarchicalError returns hierarchical (with unicode symbols) string
 // representation of occurred error, this method used by hierr package for
 // sending occurred slave errors to user as part of http response.
-func (err FlexibleError) HierarchicalError() string {
-	return hierr.Errorf(err.nested, err.format, err.args...).Error()
+func (err Error) HierarchicalError() string {
+	return hierr.Errorf(err.Nested, err.Message).Error()
 }

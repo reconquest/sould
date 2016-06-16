@@ -9,6 +9,22 @@ tests:make-tmp-dir port
 tests:make-tmp-dir task
 tests:make-tmp-dir config
 
+alias @assert-http-error='
+    # --fail will suppress response
+    tests:match-re stdout "^< HTTP/1\.1 [45]0"
+    if [[ $(tests:get-exitcode) = 0 ]]; then
+        return 1
+    fi
+
+    tests:match-re stderr "^< HTTP/1\.1 [45]0"
+    if [[ $(tests:get-exitcode) = 0 ]]; then
+        return 1
+    fi
+'
+_hostname=$(hostname)
+# there is echo for bullshit whitespace at the end of line
+_hostname_address=$(echo $(hostname --ip-address))
+
 :get-port() {
     local identifier="$@"
 
@@ -154,11 +170,7 @@ CONFIG
     local name="$2"
     local origin="$3"
 
-    tests:pipe curl \
-        -s \
-        -v \
-        -X POST \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin" \
         "$(hostname):$(:get-port $identifier)/" '2>&1'
 
@@ -166,6 +178,8 @@ CONFIG
     local stdout=$(tests:get-stdout-file)
 
     cp $stdout $(tests:get-tmp-dir)/response
+
+    @assert-http-error
 
     return $exitcode
 }
@@ -177,12 +191,34 @@ CONFIG
     local branch="$4"
     local tag="$5"
 
-    tests:pipe curl -s -v -X POST \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
         "$(hostname):$(:get-port $identifier)/"
 
-    return $(tests:get-exitcode)
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
+}
+
+:request-status() {
+    local identifier="$1"
+    local format="${2:-}"
+
+    local query=""
+    if [[ "$format" ]]; then
+        query="?format=$format"
+    fi
+
+    tests:silence tests:pipe curl -s -v -X GET -m 10 \
+        "$(hostname):$(:get-port $identifier)/x/status$query"
+
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
 }
 
 :request-tar() {
@@ -194,11 +230,14 @@ CONFIG
         query="?ref=$3"
     fi
 
-    tests:pipe curl -s -v -X GET \
-        -m 10 \
+    tests:silence tests:pipe curl -s -v -X GET -m 10 \
         "$(hostname):$(:get-port $identifier)/$mirror$query"
 
-    return $(tests:get-exitcode)
+    local exitcode=$(tests:get-exitcode)
+
+    @assert-http-error
+
+    return $exitcode
 }
 
 :git-repository() {
@@ -284,6 +323,15 @@ CONFIG
 
     tests:cd-tmp-dir $repository
     tests:pipe git rev-parse HEAD
+    tests:assert-success
+    tests:cd
+}
+
+:git-modify-date() {
+    local repository="$1"
+
+    tests:cd-tmp-dir $repository
+    tests:pipe stat --printf '%Y' refs/heads
     tests:assert-success
     tests:cd
 }

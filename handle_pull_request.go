@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/seletskiy/hierr"
 )
@@ -12,9 +12,9 @@ import (
 // propagation to slave servers in parallel mode (if this server is master),
 // pulls changeset and waits for propagation process.
 func (server *MirrorServer) HandlePullRequest(
-	response http.ResponseWriter, request PullRequest,
+	response http.ResponseWriter, request *PullRequest,
 ) {
-	var propagation *PullRequestPropagation
+	var propagation *RequestPropagation
 	if server.IsMaster() {
 		propagation = server.propagatePullRequest(request)
 	}
@@ -37,8 +37,10 @@ func (server *MirrorServer) HandlePullRequest(
 				hierr.Errorf(pullError, "pull changeset failed").Error(),
 				http.StatusInternalServerError,
 			)
+			return
 		}
 
+		response.Header().Set("X-Success", "true")
 		return
 	}
 
@@ -54,6 +56,7 @@ func (server *MirrorServer) HandlePullRequest(
 		status = http.StatusInternalServerError
 	default:
 		response.WriteHeader(http.StatusOK)
+		response.Header().Set("X-Success", "true")
 		return
 	}
 
@@ -69,10 +72,10 @@ func (server *MirrorServer) HandlePullRequest(
 		)
 	}
 
-	for _, slaveError := range propagation.SlavesErrors() {
+	for _, slaveResponse := range propagation.ResponsesError() {
 		err = hierr.Push(
 			err,
-			hierr.Errorf(slaveError, "slave "+string(slaveError.Slave)),
+			hierr.Errorf(slaveResponse, "slave "+string(slaveResponse.Slave)),
 		)
 	}
 
@@ -83,7 +86,7 @@ func (server *MirrorServer) HandlePullRequest(
 // ServePullRequest exactly serves request for pulling changeset, pulls and
 // spoofs changeset.
 func (server *MirrorServer) ServePullRequest(
-	request PullRequest,
+	request *PullRequest,
 ) (bool, error) {
 	mirror, created, err := server.GetMirror(
 		request.MirrorName, request.MirrorOrigin,
@@ -142,12 +145,12 @@ func (server *MirrorServer) ServePullRequest(
 // waits for result of propagation and logs results and errors.
 // Returns instance of running propagation operation.
 func (server *MirrorServer) propagatePullRequest(
-	request PullRequest,
-) *PullRequestPropagation {
+	request *PullRequest,
+) *RequestPropagation {
 	var (
 		mirrors = server.GetMirrorUpstream()
 
-		propagation = NewPullRequestPropagation(
+		propagation = NewRequestPropagation(
 			server.httpResource, mirrors, request,
 		)
 	)
@@ -162,32 +165,12 @@ func (server *MirrorServer) propagatePullRequest(
 	go func() {
 		propagation.Wait()
 
-		var (
-			successes = propagation.SlavesSuccess()
-			errors    = propagation.SlavesErrors()
+		logPropagation(
+			fmt.Sprintf(
+				"pull %s (%s)", request.MirrorName, request.MirrorOrigin,
+			),
+			propagation,
 		)
-
-		logger.Infof(
-			"pull request for mirror %s (%s) propagated to %d slaves, "+
-				"success %v (%.2f%%), error %v (%.2f%%)",
-			request.MirrorName, request.MirrorOrigin, len(mirrors),
-			len(successes), float64(len(successes)*100)/float64(len(mirrors)),
-			len(errors), float64(len(errors)*100)/float64(len(mirrors)),
-		)
-
-		if len(successes) > 0 {
-			logger.Infof(
-				"pull request successfully propagated to %s",
-				strings.Join(MirrorUpstream(successes).GetHosts(), ", "),
-			)
-		}
-
-		for _, err := range errors {
-			logger.Errorf(
-				"slave %s propagating pull request error: %s",
-				err.Slave, err.Error(),
-			)
-		}
 	}()
 
 	return propagation

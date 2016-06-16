@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // ListenHTTP starts a new http (tcp) listener at specified listening address.
@@ -26,8 +27,9 @@ func (server *MirrorServer) ServeHTTP(
 
 	logRequest(request)
 
-	switch request.Method {
-	case "POST":
+	var method = request.Method
+	switch {
+	case method == "POST":
 		pullRequest, err := ExtractPullRequest(
 			request.Form, server.insecureMode,
 		)
@@ -41,7 +43,16 @@ func (server *MirrorServer) ServeHTTP(
 
 		server.HandlePullRequest(response, pullRequest)
 
-	case "GET":
+	case method == "GET" &&
+		strings.TrimRight(request.URL.Path, "/") == "/x/status":
+
+		statusRequest := ExtractStatusRequest(request.URL)
+
+		logger.Info(statusRequest)
+
+		server.HandleStatusRequest(response, statusRequest)
+
+	case method == "GET":
 		tarRequest, err := ExtractTarRequest(request.URL)
 		if err != nil {
 			logger.Error(err)
