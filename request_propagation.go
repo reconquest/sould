@@ -11,12 +11,12 @@ import (
 type RequestPropagation struct {
 	worker *sync.WaitGroup
 
-	upstream MirrorUpstream
+	upstream ServersUpstream
 	request  PropagatableRequest
 	resource *http.Client
 
-	successes MirrorSlavesResponses
-	errors    MirrorSlavesResponses
+	successes ServersResponses
+	errors    ServersResponses
 }
 
 // NewRequestPropagation returns reference to operation of propagation
@@ -24,7 +24,7 @@ type RequestPropagation struct {
 // upstream.
 func NewRequestPropagation(
 	httpResource *http.Client,
-	upstream MirrorUpstream,
+	upstream ServersUpstream,
 	request PropagatableRequest,
 ) *RequestPropagation {
 	return &RequestPropagation{
@@ -62,13 +62,13 @@ func (propagation *RequestPropagation) propagate() {
 
 // ResponsesSuccess returns slice of complex structured responses from success
 // slaves.
-func (propagation RequestPropagation) ResponsesSuccess() MirrorSlavesResponses {
+func (propagation RequestPropagation) ResponsesSuccess() ServersResponses {
 	return propagation.successes
 }
 
 // ResponsesError returns slice of complex structured error responses from
 // problematic slaves.
-func (propagation RequestPropagation) ResponsesError() MirrorSlavesResponses {
+func (propagation RequestPropagation) ResponsesError() ServersResponses {
 	return propagation.errors
 }
 

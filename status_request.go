@@ -1,9 +1,6 @@
 package main
 
-import (
-	"net/http"
-	"net/url"
-)
+import "net/http"
 
 // StatusRequest is request which should be handled by all sould servers
 // independently of server role and servers should response their mirrors
@@ -32,30 +29,11 @@ func (request StatusRequest) FormatHierarchical() bool {
 // GetHTTPRequest returns http request which can be propagated to other
 // servers.
 func (request StatusRequest) GetHTTPRequest(
-	slave MirrorSlave,
+	slave SecondaryServer,
 ) (*http.Request, error) {
 	return http.NewRequest(
 		"GET",
 		"http://"+string(slave)+"/x/status?format=json",
 		nil,
 	)
-}
-
-// ExtractStatusRequest returns instance of StatusRequest basing on specified
-// URL.
-func ExtractStatusRequest(url *url.URL) StatusRequest {
-	var format string
-
-	formatValue := url.Query().Get("format")
-	switch formatValue {
-	case "toml", "json":
-		format = formatValue
-
-	default:
-		format = "hierarchical"
-	}
-
-	return StatusRequest{
-		format: format,
-	}
 }

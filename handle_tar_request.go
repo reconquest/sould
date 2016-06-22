@@ -7,7 +7,7 @@ import (
 
 // HandleTarRequest handles requests for downloading tar archives of specified
 // revision.
-func (server *ServerHTTP) HandleTarRequest(
+func (server *Server) HandleTarRequest(
 	response http.ResponseWriter, request TarRequest,
 ) {
 	mirror, err := GetMirror(server.GetStorageDir(), request.MirrorName)

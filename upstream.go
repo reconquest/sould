@@ -5,15 +5,15 @@ import (
 	"sync"
 )
 
-// MirrorUpstream is representation of mirror slave set.
-type MirrorUpstream []MirrorSlave
+// ServersUpstream is representation of mirror slave set.
+type ServersUpstream []SecondaryServer
 
-// NewMirrorUpstream creates a set of mirror slaves using specified slave
+// NewServersUpstream creates a set of mirror slaves using specified slave
 // server addresses.
-func NewMirrorUpstream(hosts []string) MirrorUpstream {
-	upstream := MirrorUpstream{}
+func NewServersUpstream(hosts []string) ServersUpstream {
+	upstream := ServersUpstream{}
 	for _, host := range hosts {
-		upstream = append(upstream, MirrorSlave(host))
+		upstream = append(upstream, SecondaryServer(host))
 	}
 
 	return upstream
@@ -21,21 +21,21 @@ func NewMirrorUpstream(hosts []string) MirrorUpstream {
 
 // Propagate starts and wait all workers, which propagates requests to
 // sould slave servers.
-func (upstream MirrorUpstream) Propagate(
+func (upstream ServersUpstream) Propagate(
 	httpResource *http.Client, request PropagatableRequest,
-) (successes MirrorSlavesResponses, errors MirrorSlavesResponses) {
+) (successes ServersResponses, errors ServersResponses) {
 	var (
 		workersPropagate = sync.WaitGroup{}
 		workersReceive   = sync.WaitGroup{}
 
-		responsesError   = make(chan *MirrorSlaveResponse)
-		responsesSuccess = make(chan *MirrorSlaveResponse)
+		responsesError   = make(chan *ServerResponse)
+		responsesSuccess = make(chan *ServerResponse)
 	)
 
 	for _, slave := range upstream {
 		workersPropagate.Add(1)
 
-		go func(slave MirrorSlave) {
+		go func(slave SecondaryServer) {
 			defer workersPropagate.Done()
 
 			response := slave.ExecuteRequest(request, httpResource)

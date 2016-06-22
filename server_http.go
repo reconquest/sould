@@ -1,21 +1,23 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
-	"os"
+	"net/url"
 	"strings"
+
+	"github.com/ajg/form"
 )
 
 // ListenHTTP starts a new http (tcp) listener at specified listening address.
-func (server *ServerHTTP) ListenHTTP() error {
+func (server *Server) ListenHTTP() error {
 	http.Handle("/", server)
 
 	return http.ListenAndServe(server.GetListenAddress(), nil)
 }
 
 // ServeHTTP is entrypoint of all HTTP connections with sould server.
-func (server *ServerHTTP) ServeHTTP(
+func (server *Server) ServeHTTP(
 	response http.ResponseWriter, request *http.Request,
 ) {
 	defer func() {
@@ -70,36 +72,84 @@ func (server *ServerHTTP) ServeHTTP(
 	}
 }
 
-// GetMirror returns existing mirror or creates new instance in storage
-// directory.
-func (server *ServerHTTP) GetMirror(
-	name string, origin string,
-) (mirror Mirror, created bool, err error) {
-	mirror, err = GetMirror(server.GetStorageDir(), name)
+// ExtractPullRequest parses post form and creates new instance of PullRequest,
+// if insecure is false (by default) then ExtractPullRequest will check that
+// given mirror origin url is really url.
+func ExtractPullRequest(
+	values url.Values, insecure bool,
+) (*PullRequest, error) {
+	var request PullRequest
+	err := form.DecodeValues(&request, values)
 	if err != nil {
-		if !os.IsNotExist(err) {
-			return Mirror{}, false, err
+		return nil, err
+	}
+
+	if request.Spoof {
+		values.Set("branch", values.Get("branch"))
+		values.Set("tag", values.Get("tag"))
+	}
+
+	err = validateValues(values)
+	if err != nil {
+		return nil, err
+	}
+
+	if !insecure && !isURL(request.MirrorOrigin) {
+		return nil, errors.New("field 'origin' has an invalid URL")
+	}
+
+	return &request, err
+}
+
+func validateValues(values url.Values) error {
+	for key := range values {
+		value := strings.TrimSpace(values.Get(key))
+		if value == "" {
+			return errors.New("field '" + key + "' has an empty value")
 		}
 
-		mirror, err = CreateMirror(server.GetStorageDir(), name, origin)
-		if err != nil {
-			return Mirror{}, false, NewError(err, "can't create new mirror")
+		if strings.HasPrefix(value, "-") {
+			return errors.New("field '" + key + "' has an insecure value")
 		}
-
-		return mirror, true, nil
 	}
 
-	mirrorURL, err := mirror.GetURL()
-	if err != nil {
-		return mirror, false, NewError(err, "can't get mirror origin url")
+	return nil
+}
+
+// ExtractTarRequest parses given URL and extracts request for downloading tar
+// archive.
+func ExtractTarRequest(url *url.URL) (TarRequest, error) {
+	request := TarRequest{
+		MirrorName: strings.Trim(url.Path, "/"),
+		Reference:  strings.TrimSpace(url.Query().Get("ref")),
 	}
 
-	if mirrorURL != origin {
-		return mirror, false, fmt.Errorf(
-			"mirror have different origin url (%s)",
-			mirrorURL,
-		)
+	if request.MirrorName == "" {
+		return request, errors.New("field 'name' has an empty value")
 	}
 
-	return mirror, true, nil
+	if request.Reference == "" {
+		request.Reference = "master"
+	}
+
+	return request, nil
+}
+
+// ExtractStatusRequest returns instance of StatusRequest basing on specified
+// URL.
+func ExtractStatusRequest(url *url.URL) StatusRequest {
+	var format string
+
+	formatValue := url.Query().Get("format")
+	switch formatValue {
+	case "toml", "json":
+		format = formatValue
+
+	default:
+		format = "hierarchical"
+	}
+
+	return StatusRequest{
+		format: format,
+	}
 }

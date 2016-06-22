@@ -12,7 +12,7 @@ const (
 )
 
 // HandleStatusRequest handles requests for sould mirrors status.
-func (server *ServerHTTP) HandleStatusRequest(
+func (server *Server) HandleStatusRequest(
 	response http.ResponseWriter, request StatusRequest,
 ) {
 	status := server.serveStatusRequest(request)
@@ -50,7 +50,7 @@ func (server *ServerHTTP) HandleStatusRequest(
 	response.Write(buffer)
 }
 
-func (server *ServerHTTP) serveStatusRequest(
+func (server *Server) serveStatusRequest(
 	request StatusRequest,
 ) ServerStatus {
 	var propagation *RequestPropagation
@@ -89,7 +89,7 @@ func (server *ServerHTTP) serveStatusRequest(
 	return status
 }
 
-func (server *ServerHTTP) getMirrorsStatuses() ([]MirrorStatus, []Error) {
+func (server *Server) getMirrorsStatuses() ([]MirrorStatus, []Error) {
 	var statuses []MirrorStatus
 	var errors []Error
 
@@ -132,11 +132,11 @@ func (server *ServerHTTP) getMirrorsStatuses() ([]MirrorStatus, []Error) {
 	return statuses, errors
 }
 
-func (server *ServerHTTP) propagateStatusRequest(
+func (server *Server) propagateStatusRequest(
 	request StatusRequest,
 ) *RequestPropagation {
 	var (
-		mirrors = server.GetMirrorUpstream()
+		mirrors = server.GetServersUpstream()
 
 		propagation = NewRequestPropagation(
 			server.httpResource, mirrors, request,
