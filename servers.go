@@ -5,12 +5,12 @@ import (
 	"net/http"
 )
 
-// SecondaryServer is representation of slave sould server.
-type SecondaryServer string
+// ServerFollowerServer is representation of slave sould server.
+type ServerFollowerServer string
 
 // ExecuteRequest creates and sends HTTP request basing on given propagatable
 // request variable to given slave server using given http client.
-func (slave SecondaryServer) ExecuteRequest(
+func (slave ServerFollowerServer) ExecuteRequest(
 	request PropagatableRequest,
 	httpResource *http.Client,
 ) *ServerResponse {
