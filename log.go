@@ -1,6 +1,10 @@
 package main
 
-import "github.com/kovetskiy/lorg"
+import (
+	"runtime"
+
+	"github.com/kovetskiy/lorg"
+)
 
 // @TODO: create a log files
 const (
@@ -28,4 +32,15 @@ func NewPrefixedLogger(prefix string) lorg.Logger {
 	logger.SetFormat(format)
 
 	return logger
+}
+
+func stack() []byte {
+	buffer := make([]byte, 1024)
+	for {
+		stack := runtime.Stack(buffer, true)
+		if stack < len(buffer) {
+			return buffer[:stack]
+		}
+		buffer = make([]byte, 2*len(buffer))
+	}
 }
