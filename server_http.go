@@ -8,14 +8,14 @@ import (
 )
 
 // ListenHTTP starts a new http (tcp) listener at specified listening address.
-func (server *MirrorServer) ListenHTTP() error {
+func (server *ServerHTTP) ListenHTTP() error {
 	http.Handle("/", server)
 
 	return http.ListenAndServe(server.GetListenAddress(), nil)
 }
 
 // ServeHTTP is entrypoint of all HTTP connections with sould server.
-func (server *MirrorServer) ServeHTTP(
+func (server *ServerHTTP) ServeHTTP(
 	response http.ResponseWriter, request *http.Request,
 ) {
 	defer func() {
@@ -72,7 +72,7 @@ func (server *MirrorServer) ServeHTTP(
 
 // GetMirror returns existing mirror or creates new instance in storage
 // directory.
-func (server *MirrorServer) GetMirror(
+func (server *ServerHTTP) GetMirror(
 	name string, origin string,
 ) (mirror Mirror, created bool, err error) {
 	mirror, err = GetMirror(server.GetStorageDir(), name)

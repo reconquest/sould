@@ -9,21 +9,21 @@ import (
 	"github.com/zazab/zhash"
 )
 
-// MirrorServer used for handling HTTP requests.
-type MirrorServer struct {
+// ServerHTTP used for handling HTTP requests.
+type ServerHTTP struct {
 	config       zhash.Hash
 	states       *MirrorStates
 	httpResource *http.Client
 	insecureMode bool
 }
 
-// NewMirrorServer creates a new instance of MirrorServer, sets specified
+// NewServerHTTP creates a new instance of ServerHTTP, sets specified
 // config as server config, if config is invalid, than special error will be
 // returned.
-func NewMirrorServer(
+func NewServerHTTP(
 	config zhash.Hash, states *MirrorStates, insecureMode bool,
-) (*MirrorServer, error) {
-	server := MirrorServer{
+) (*ServerHTTP, error) {
+	server := ServerHTTP{
 		states:       states,
 		insecureMode: insecureMode,
 	}
@@ -45,7 +45,7 @@ func NewMirrorServer(
 // SetConfig from zhash.Hash instance which actually is representation of
 // map[string]interface{}
 // SetConfig validates specified configuration before using.
-func (server *MirrorServer) SetConfig(config zhash.Hash) error {
+func (server *ServerHTTP) SetConfig(config zhash.Hash) error {
 	isMaster, err := config.GetBool("master")
 	if err != nil && !zhash.IsNotFound(err) {
 		return err
@@ -83,22 +83,22 @@ func (server *MirrorServer) SetConfig(config zhash.Hash) error {
 }
 
 // IsMaster will be true only if config consists of special master directive.
-func (server *MirrorServer) IsMaster() bool {
+func (server *ServerHTTP) IsMaster() bool {
 	isMaster, _ := server.config.GetBool("master")
 
 	return isMaster
 }
 
 // IsSlave is shortcut for "not is master" and returns opposite value of
-// MirrorServer.IsMaster()
-func (server MirrorServer) IsSlave() bool {
+// ServerHTTP.IsMaster()
+func (server ServerHTTP) IsSlave() bool {
 	return !server.IsMaster()
 }
 
 // GetRole returns string representation of server role basing on server
 // configuration.
 // Can be: master or slave.
-func (server MirrorServer) GetRole() string {
+func (server ServerHTTP) GetRole() string {
 	if server.IsMaster() {
 		return "master"
 	}
@@ -108,7 +108,7 @@ func (server MirrorServer) GetRole() string {
 
 // GetStorageDir where to place all repository mirrors, value will be read from
 // config.
-func (server *MirrorServer) GetStorageDir() string {
+func (server *ServerHTTP) GetStorageDir() string {
 	storage, _ := server.config.GetString("storage")
 
 	return storage
@@ -116,14 +116,14 @@ func (server *MirrorServer) GetStorageDir() string {
 
 // GetListenAddress which will be used for listening http connections, value
 // will be read from config.
-func (server *MirrorServer) GetListenAddress() string {
+func (server *ServerHTTP) GetListenAddress() string {
 	address, _ := server.config.GetString("http", "listen")
 
 	return address
 }
 
 // GetTimeout for all http actions, value will be read from config.
-func (server *MirrorServer) GetTimeout() int64 {
+func (server *ServerHTTP) GetTimeout() int64 {
 	timeout, _ := server.config.GetInt("timeout")
 
 	return timeout
@@ -131,14 +131,14 @@ func (server *MirrorServer) GetTimeout() int64 {
 
 // GetMirrorUpstream of sould slave servers which should be defined in
 // configuration file if server is master, value will be read from config.
-func (server *MirrorServer) GetMirrorUpstream() MirrorUpstream {
+func (server *ServerHTTP) GetMirrorUpstream() MirrorUpstream {
 	hosts, _ := server.config.GetStringSlice("slaves")
 
 	return NewMirrorUpstream(hosts)
 }
 
 // NetDial sets timeout for dialing specified address.
-func (server *MirrorServer) NetDial(
+func (server *ServerHTTP) NetDial(
 	network, address string,
 ) (net.Conn, error) {
 	timeout := time.Duration(

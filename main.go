@@ -65,7 +65,7 @@ func main() {
 
 	mirrorStates := NewMirrorStates()
 
-	server, err := NewMirrorServer(config, mirrorStates, insecureMode)
+	server, err := NewServerHTTP(config, mirrorStates, insecureMode)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func getConfig(path string) (zhash.Hash, error) {
 }
 
 func reloadConfig(
-	server *MirrorServer, proxy *GitProxy, configPath string,
+	server *ServerHTTP, proxy *GitProxy, configPath string,
 ) (becameMaster bool, becameSlave bool, err error) {
 	defer func() {
 		err := recover()
@@ -138,7 +138,7 @@ func reloadConfig(
 }
 
 func serveHangupSignals(
-	server *MirrorServer, proxy *GitProxy, configPath string,
+	server *ServerHTTP, proxy *GitProxy, configPath string,
 ) {
 	hangup := make(chan os.Signal, 1)
 	signal.Notify(hangup, syscall.SIGHUP)
