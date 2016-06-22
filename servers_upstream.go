@@ -6,14 +6,14 @@ import (
 )
 
 // ServersUpstream is representation of mirror slave set.
-type ServersUpstream []ServerFollowerServer
+type ServersUpstream []SecondaryServer
 
 // NewServersUpstream creates a set of mirror slaves using specified slave
 // server addresses.
 func NewServersUpstream(hosts []string) ServersUpstream {
 	upstream := ServersUpstream{}
 	for _, host := range hosts {
-		upstream = append(upstream, ServerFollowerServer(host))
+		upstream = append(upstream, SecondaryServer(host))
 	}
 
 	return upstream
@@ -35,7 +35,7 @@ func (upstream ServersUpstream) Propagate(
 	for _, slave := range upstream {
 		workersPropagate.Add(1)
 
-		go func(slave ServerFollowerServer) {
+		go func(slave SecondaryServer) {
 			defer workersPropagate.Done()
 
 			response := slave.ExecuteRequest(request, httpResource)

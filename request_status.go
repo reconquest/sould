@@ -29,7 +29,7 @@ func (request StatusRequest) IsFormatHierarchical() bool {
 // GetHTTPRequest returns http request which can be propagated to other
 // servers.
 func (request StatusRequest) GetHTTPRequest(
-	slave ServerFollowerServer,
+	slave SecondaryServer,
 ) (*http.Request, error) {
 	return http.NewRequest(
 		"GET",

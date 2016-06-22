@@ -37,7 +37,7 @@ func (request *PullRequest) String() string {
 
 // GetHTTPRequest which can be executed basing on given pull request data.
 func (request *PullRequest) GetHTTPRequest(
-	slave ServerFollowerServer,
+	slave SecondaryServer,
 ) (*http.Request, error) {
 	payload, err := form.EncodeToString(request)
 	if err != nil {

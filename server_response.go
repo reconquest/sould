@@ -25,7 +25,7 @@ func (responses ServersResponses) GetHosts() []string {
 // Also, ServerResponse implements Error interfaces.
 type ServerResponse struct {
 	// Slave is problematic mirror slave server.
-	Slave ServerFollowerServer
+	Slave SecondaryServer
 
 	// Status is HTTP status which has been received from slave server response.
 	Status string
