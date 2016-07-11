@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	version = `3.1`
+	version = `[manual build]`
 
-	usage = `SOULD ` + version + `
+	usage = `sould ` + version + `
 
 The scalable failover service for mirroring git repositories.
 https://github.com/reconquest/sould
