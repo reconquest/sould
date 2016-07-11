@@ -113,6 +113,17 @@ func (mirror *Mirror) Fetch() error {
 // SpoofChangeset forcely sets branch label on specified "deattached" tag and
 // removes that tag from mirror repository.
 func (mirror *Mirror) SpoofChangeset(branch, tag string) error {
+	if tag == "0000000000000000000000000000000000000000" {
+		cmd := exec.Command("git", "branch", "--delete", branch)
+		cmd.Dir = mirror.Dir
+		_, _, err := executil.Run(cmd)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	cmd := exec.Command("git", "branch", "--force", branch, tag)
 	cmd.Dir = mirror.Dir
 	_, _, err := executil.Run(cmd)
