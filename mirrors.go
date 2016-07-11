@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// getAllMirrors returns all mirrors that locates in specified root directory.
 func getAllMirrors(rootDir string) ([]string, error) {
 	var mirrors []string
 

@@ -48,8 +48,9 @@ func (state MirrorState) String() string {
 
 // NewMirrorStates creates a new empty mirror states table.
 func NewMirrorStates() *MirrorStates {
-	states := &MirrorStates{}
-	states.data = make(map[string]MirrorState)
+	states := &MirrorStates{
+		data: map[string]MirrorState{},
+	}
 	return states
 }
 

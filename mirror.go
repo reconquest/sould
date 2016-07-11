@@ -12,6 +12,10 @@ import (
 	"github.com/kovetskiy/executil"
 )
 
+const (
+	hashZero = "0000000000000000000000000000000000000000"
+)
+
 // Mirror of remote git repository.
 type Mirror struct {
 	// Name is unique identifier.
@@ -113,7 +117,7 @@ func (mirror *Mirror) Fetch() error {
 // SpoofChangeset forcely sets branch label on specified "deattached" tag and
 // removes that tag from mirror repository.
 func (mirror *Mirror) SpoofChangeset(branch, tag string) error {
-	if tag == "0000000000000000000000000000000000000000" {
+	if tag == hashZero {
 		cmd := exec.Command("git", "branch", "--delete", branch)
 		cmd.Dir = mirror.Dir
 		_, _, err := executil.Run(cmd)
