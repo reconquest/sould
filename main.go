@@ -103,9 +103,9 @@ func reloadConfig(
 	server *Server, proxy *GitProxy, configPath string,
 ) (becameMaster bool, becameSlave bool, err error) {
 	defer func() {
-		err := recover()
-		if err != nil {
-			err = fmt.Errorf("PANIC: %s\n%s", err, stack())
+		panicErr:= recover()
+		if panicErr != nil {
+			err = fmt.Errorf("PANIC: %s\n%s", panicErr, stack())
 		}
 	}()
 
