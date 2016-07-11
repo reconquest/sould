@@ -12,17 +12,13 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
-// resetter resets structure marshal methods, so resetter doesn't implements
-// json.Marshaler and toml.Marshaler
-type resetter ServerStatus
-
-func (*resetter) MarshalJSON() {}
-func (*resetter) MarshalTOML() {}
-
 var (
 	_ json.Marshaler = ServerStatus{}
 	_ toml.Marshaler = ServerStatus{}
 )
+
+// unencodable used for preventing invoking MarshalJSON/MarshalTOML
+type unencodable ServerStatus
 
 // MarshalJSON will be called by json.Marshal it will return json
 // representation of server's status.
@@ -34,7 +30,7 @@ func (status ServerStatus) MarshalJSON() ([]byte, error) {
 	)
 
 	if status.Role == "master" {
-		data, err = ffjson.Marshal(resetter(status))
+		data, err = ffjson.Marshal(unencodable(status))
 	} else {
 		status.Role = "slave"
 		data, err = ffjson.Marshal(status.BasicServerStatus)
@@ -58,7 +54,7 @@ func (status ServerStatus) MarshalTOML() ([]byte, error) {
 	encoder := toml.NewEncoder(&buffer)
 	encoder.Indent = ServerStatusResponseIndentation
 	if status.Role == "master" {
-		err = encoder.Encode(resetter(status))
+		err = encoder.Encode(unencodable(status))
 	} else {
 		status.Role = "slave"
 		err = encoder.Encode(status.BasicServerStatus)
