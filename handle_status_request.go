@@ -20,14 +20,14 @@ func (server *Server) HandleStatusRequest(
 	var err error
 	var buffer []byte
 	switch {
-	case request.FormatJSON():
+	case request.IsFormatJSON():
 		buffer, err = status.MarshalJSON()
 		if err != nil {
 			err = NewError(err, "can't encode json")
 			break
 		}
 
-	case request.FormatTOML():
+	case request.IsFormatTOML():
 		buffer, err = status.MarshalTOML()
 		if err != nil {
 			err = NewError(err, "can't encode toml")

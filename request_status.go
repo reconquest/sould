@@ -10,19 +10,19 @@ type StatusRequest struct {
 	format string
 }
 
-// FormatJSON returns true if server should response in JSON format.
-func (request StatusRequest) FormatJSON() bool {
+// IsFormatJSON returns true if server should response in JSON format.
+func (request StatusRequest) IsFormatJSON() bool {
 	return request.format == "json"
 }
 
-// FormatTOML returns true if server should response in TOML format.
-func (request StatusRequest) FormatTOML() bool {
+// IsFormatTOML returns true if server should response in TOML format.
+func (request StatusRequest) IsFormatTOML() bool {
 	return request.format == "toml"
 }
 
-// FormatHierarchical returns true if server should response in hierarchical
+// IsFormatHierarchical returns true if server should response in hierarchical
 // format. Really human-friendly format.
-func (request StatusRequest) FormatHierarchical() bool {
+func (request StatusRequest) IsFormatHierarchical() bool {
 	return request.format == "hierarchical"
 }
 
