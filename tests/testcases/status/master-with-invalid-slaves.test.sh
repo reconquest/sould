@@ -43,7 +43,7 @@ status
          ├─ total: 0
          │
          └─ error
-            └─ Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused
+            └─ Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname:${port_sweety}: getsockopt: connection refused
 RESPONSE
 
 tests:ensure \
@@ -75,8 +75,8 @@ tests:assert-no-diff stdout <<RESPONSE
                 "address": "$_hostname:$port_sweety",
                 "role": "slave",
                 "total": 0,
-                "error": "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused",
-                "hierarchical_error": "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused"
+                "error": "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname:${port_sweety}: getsockopt: connection refused",
+                "hierarchical_error": "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname:${port_sweety}: getsockopt: connection refused"
             }
         ]
     }
@@ -108,8 +108,8 @@ total = 0
 
     [[upstream.slaves]]
         address = "$_hostname:$port_sweety"
-        error = "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused"
-        hierarchical_error = "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname_address:${port_sweety}: getsockopt: connection refused"
+        error = "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname:${port_sweety}: getsockopt: connection refused"
+        hierarchical_error = "Get http://$_hostname:$port_sweety/x/status?format=json: dial tcp $_hostname:${port_sweety}: getsockopt: connection refused"
         role = "slave"
         total = 0
 RESPONSE
