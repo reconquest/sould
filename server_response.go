@@ -6,11 +6,11 @@ import (
 	"github.com/seletskiy/hierr"
 )
 
-// MirrorSlavesResponses is a set of slave responses, usable for batching.
-type MirrorSlavesResponses []*MirrorSlaveResponse
+// ServersResponses is a set of slave responses, usable for batching.
+type ServersResponses []*ServerResponse
 
 // GetHosts of given mirror slave servers.
-func (responses MirrorSlavesResponses) GetHosts() []string {
+func (responses ServersResponses) GetHosts() []string {
 	hosts := []string{}
 	for _, response := range responses {
 		hosts = append(hosts, string(response.Slave))
@@ -19,13 +19,13 @@ func (responses MirrorSlavesResponses) GetHosts() []string {
 	return hosts
 }
 
-// MirrorSlaveResponse represents information about result of request
+// ServerResponse represents information about result of request
 // propagation to sould slave server.
 //
-// Also, MirrorSlaveResponse implements Error interfaces.
-type MirrorSlaveResponse struct {
+// Also, ServerResponse implements Error interfaces.
+type ServerResponse struct {
 	// Slave is problematic mirror slave server.
-	Slave MirrorSlave
+	Slave SecondaryServer
 
 	// Status is HTTP status which has been received from slave server response.
 	Status string
@@ -57,7 +57,7 @@ type MirrorSlaveResponse struct {
 
 // Error returns plain one-line string representation of occurred error, this
 // method should be used for saving error to sould error logs.
-func (response MirrorSlaveResponse) Error() string {
+func (response ServerResponse) Error() string {
 	if response.ErrorRequest != nil {
 		return response.ErrorRequest.Error()
 	}
@@ -88,7 +88,7 @@ func (response MirrorSlaveResponse) Error() string {
 // HierarchicalError returns hierarchical (with unicode symbols) string
 // representation of occurred error, this method used by hierr package for
 // sending occurred slave errors to user as part of http response.
-func (response MirrorSlaveResponse) HierarchicalError() string {
+func (response ServerResponse) HierarchicalError() string {
 	if response.ErrorRequest != nil {
 		return response.ErrorRequest.Error()
 	}
@@ -140,6 +140,6 @@ func (response MirrorSlaveResponse) HierarchicalError() string {
 }
 
 // IsSuccess returns true if given response looks like a succeed request.
-func (response MirrorSlaveResponse) IsSuccess() bool {
+func (response ServerResponse) IsSuccess() bool {
 	return response.HeaderXSuccess == "true"
 }

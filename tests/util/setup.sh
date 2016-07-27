@@ -21,9 +21,7 @@ alias @assert-http-error='
         return 1
     fi
 '
-_hostname=$(hostname)
-# there is echo for bullshit whitespace at the end of line
-_hostname_address=$(echo $(hostname --ip-address))
+_hostname=127.0.0.1
 
 :get-port() {
     local identifier="$@"
@@ -65,10 +63,10 @@ _hostname_address=$(echo $(hostname --ip-address))
     tests:put "$config" <<CONFIG
 storage = "$storage"
 [http]
-    listen = "$(hostname):$http_port"
+    listen = "127.0.0.1:$http_port"
 [git]
-    listen = "$(hostname):$git_port"
-    daemon = "$(hostname):9419"
+    listen = "127.0.0.1:$git_port"
+    daemon = "127.0.0.1:9419"
 CONFIG
 }
 
@@ -79,7 +77,7 @@ CONFIG
 
     local slaves=()
     while [[ $# -gt 0 ]]; do
-        slaves+=('"'$(hostname):$(:get-port "$1")'"')
+        slaves+=('"'127.0.0.1:$(:get-port "$1")'"')
         shift
     done
 
@@ -172,7 +170,7 @@ CONFIG
 
     tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin" \
-        "$(hostname):$(:get-port $identifier)/" '2>&1'
+        "127.0.0.1:$(:get-port $identifier)/" '2>&1'
 
     local exitcode=$(tests:get-exitcode)
     local stdout=$(tests:get-stdout-file)
@@ -193,7 +191,7 @@ CONFIG
 
     tests:silence tests:pipe curl -s -v -X POST -m 10 \
         --data "name=$name&origin=$origin&spoof=1&branch=$branch&tag=$tag" \
-        "$(hostname):$(:get-port $identifier)/"
+        "127.0.0.1:$(:get-port $identifier)/"
 
     local exitcode=$(tests:get-exitcode)
 
@@ -212,7 +210,7 @@ CONFIG
     fi
 
     tests:silence tests:pipe curl -s -v -X GET -m 10 \
-        "$(hostname):$(:get-port $identifier)/x/status$query"
+        "127.0.0.1:$(:get-port $identifier)/x/status$query"
 
     local exitcode=$(tests:get-exitcode)
 
@@ -231,7 +229,7 @@ CONFIG
     fi
 
     tests:silence tests:pipe curl -s -v -X GET -m 10 \
-        "$(hostname):$(:get-port $identifier)/$mirror$query"
+        "127.0.0.1:$(:get-port $identifier)/$mirror$query"
 
     local exitcode=$(tests:get-exitcode)
 
@@ -296,7 +294,7 @@ CONFIG
     shift
 
     @var git_port :get-port git_$identifier
-    tests:ensure git clone git://$(hostname):$git_port/$name $to
+    tests:ensure git clone git://127.0.0.1:$git_port/$name $to
 }
 
 :git-clone-fail() {
@@ -306,7 +304,7 @@ CONFIG
     shift
 
     @var git_port :get-port git_$identifier
-    tests:not tests:ensure git clone git://$(hostname):$git_port/$name $to
+    tests:not tests:ensure git clone git://127.0.0.1:$git_port/$name $to
 }
 
 :git-server-start() {

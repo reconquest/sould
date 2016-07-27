@@ -12,7 +12,7 @@ const (
 )
 
 // HandleStatusRequest handles requests for sould mirrors status.
-func (server *MirrorServer) HandleStatusRequest(
+func (server *Server) HandleStatusRequest(
 	response http.ResponseWriter, request StatusRequest,
 ) {
 	status := server.serveStatusRequest(request)
@@ -20,14 +20,14 @@ func (server *MirrorServer) HandleStatusRequest(
 	var err error
 	var buffer []byte
 	switch {
-	case request.FormatJSON():
+	case request.IsFormatJSON():
 		buffer, err = status.MarshalJSON()
 		if err != nil {
 			err = NewError(err, "can't encode json")
 			break
 		}
 
-	case request.FormatTOML():
+	case request.IsFormatTOML():
 		buffer, err = status.MarshalTOML()
 		if err != nil {
 			err = NewError(err, "can't encode toml")
@@ -50,7 +50,7 @@ func (server *MirrorServer) HandleStatusRequest(
 	response.Write(buffer)
 }
 
-func (server *MirrorServer) serveStatusRequest(
+func (server *Server) serveStatusRequest(
 	request StatusRequest,
 ) ServerStatus {
 	var propagation *RequestPropagation
@@ -89,7 +89,7 @@ func (server *MirrorServer) serveStatusRequest(
 	return status
 }
 
-func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []Error) {
+func (server *Server) getMirrorsStatuses() ([]MirrorStatus, []Error) {
 	var statuses []MirrorStatus
 	var errors []Error
 
@@ -132,11 +132,11 @@ func (server *MirrorServer) getMirrorsStatuses() ([]MirrorStatus, []Error) {
 	return statuses, errors
 }
 
-func (server *MirrorServer) propagateStatusRequest(
+func (server *Server) propagateStatusRequest(
 	request StatusRequest,
 ) *RequestPropagation {
 	var (
-		mirrors = server.GetMirrorUpstream()
+		mirrors = server.GetServersUpstream()
 
 		propagation = NewRequestPropagation(
 			server.httpResource, mirrors, request,

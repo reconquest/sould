@@ -11,7 +11,7 @@ import (
 // HandlePullRequest handles new request for pulling changeset, starts request
 // propagation to slave servers in parallel mode (if this server is master),
 // pulls changeset and waits for propagation process.
-func (server *MirrorServer) HandlePullRequest(
+func (server *Server) HandlePullRequest(
 	response http.ResponseWriter, request *PullRequest,
 ) {
 	var propagation *RequestPropagation
@@ -85,7 +85,7 @@ func (server *MirrorServer) HandlePullRequest(
 
 // ServePullRequest exactly serves request for pulling changeset, pulls and
 // spoofs changeset.
-func (server *MirrorServer) ServePullRequest(
+func (server *Server) ServePullRequest(
 	request *PullRequest,
 ) (bool, error) {
 	mirror, created, err := server.GetMirror(
@@ -144,11 +144,11 @@ func (server *MirrorServer) ServePullRequest(
 // propagatePullRequest propagates specified PullRequest to mirror upstream,
 // waits for result of propagation and logs results and errors.
 // Returns instance of running propagation operation.
-func (server *MirrorServer) propagatePullRequest(
+func (server *Server) propagatePullRequest(
 	request *PullRequest,
 ) *RequestPropagation {
 	var (
-		mirrors = server.GetMirrorUpstream()
+		mirrors = server.GetServersUpstream()
 
 		propagation = NewRequestPropagation(
 			server.httpResource, mirrors, request,

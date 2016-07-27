@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	version = `3.1`
+	version = `[manual build]`
 
-	usage = `SOULD ` + version + `
+	usage = `sould ` + version + `
 
 The scalable failover service for mirroring git repositories.
 https://github.com/reconquest/sould
@@ -65,7 +65,7 @@ func main() {
 
 	mirrorStates := NewMirrorStates()
 
-	server, err := NewMirrorServer(config, mirrorStates, insecureMode)
+	server, err := NewServer(config, mirrorStates, insecureMode)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -100,12 +100,12 @@ func getConfig(path string) (zhash.Hash, error) {
 }
 
 func reloadConfig(
-	server *MirrorServer, proxy *GitProxy, configPath string,
+	server *Server, proxy *GitProxy, configPath string,
 ) (becameMaster bool, becameSlave bool, err error) {
 	defer func() {
-		err := recover()
-		if err != nil {
-			err = fmt.Errorf("PANIC: %s\n%s", err, stack())
+		panicErr := recover()
+		if panicErr != nil {
+			err = fmt.Errorf("PANIC: %s\n%s", panicErr, stack())
 		}
 	}()
 
@@ -138,7 +138,7 @@ func reloadConfig(
 }
 
 func serveHangupSignals(
-	server *MirrorServer, proxy *GitProxy, configPath string,
+	server *Server, proxy *GitProxy, configPath string,
 ) {
 	hangup := make(chan os.Signal, 1)
 	signal.Notify(hangup, syscall.SIGHUP)
