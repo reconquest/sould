@@ -118,7 +118,7 @@ func (mirror *Mirror) Fetch() error {
 // removes that tag from mirror repository.
 func (mirror *Mirror) SpoofChangeset(branch, tag string) error {
 	if tag == hashZero {
-		cmd := exec.Command("git", "branch", "--delete", branch)
+		cmd := exec.Command("git", "branch", "--delete", "--force", branch)
 		cmd.Dir = mirror.Dir
 		_, _, err := executil.Run(cmd)
 		if err != nil {
