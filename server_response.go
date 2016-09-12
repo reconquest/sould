@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 // ServersResponses is a set of slave responses, usable for batching.

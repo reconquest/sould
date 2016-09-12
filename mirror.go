@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kovetskiy/executil"
+	"github.com/reconquest/executil-go"
 )
 
 const (

@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 	"github.com/zazab/zhash"
 )
 

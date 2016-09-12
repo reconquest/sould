@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/docopt/docopt-go"
 	"github.com/kovetskiy/toml"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 	"github.com/zazab/zhash"
 )
 
@@ -160,5 +162,32 @@ func serveHangupSignals(
 		default:
 			logger.Info("config successfully reloaded")
 		}
+	}
+}
+
+func watchDatabaseConnection(database Database) {
+	for {
+		time.Sleep(time.Second * 5)
+
+		connected, err := database.IsConnected()
+		if err != nil {
+			log.Println(err)
+		}
+
+		if connected {
+			continue
+		}
+
+		log.Printf(
+			"database connection has gone away, trying to reconnect...",
+		)
+
+		err = database.Connect()
+		if err != nil {
+			log.Printf("can't establish database connection: %s", err)
+			continue
+		}
+
+		log.Printf("database connection established")
 	}
 }
