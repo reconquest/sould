@@ -8,7 +8,7 @@ import (
 
 	"github.com/docopt/docopt-go"
 	"github.com/kovetskiy/toml"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 	"github.com/zazab/zhash"
 )
 

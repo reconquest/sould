@@ -9,7 +9,7 @@ import (
 
 	"github.com/kovetskiy/toml"
 	"github.com/pquerna/ffjson/ffjson"
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 var (

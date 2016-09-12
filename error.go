@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 // Error is smart and flexible string representation of occurred error, can be

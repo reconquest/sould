@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/seletskiy/hierr"
+	"github.com/reconquest/hierr-go"
 )
 
 // HandlePullRequest handles new request for pulling changeset, starts request
