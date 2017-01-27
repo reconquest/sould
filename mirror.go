@@ -61,6 +61,14 @@ func CreateMirror(
 
 	err = mirror.Clone(url)
 	if err != nil {
+		cleanupError := os.RemoveAll(mirrorDir)
+		if cleanupError != nil {
+			logger.Errorf(
+				"can't remove mirror directory after failed clone: %s",
+				mirrorDir,
+			)
+		}
+
 		return Mirror{}, err
 	}
 
