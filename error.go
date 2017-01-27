@@ -6,6 +6,10 @@ import (
 	"github.com/reconquest/hierr-go"
 )
 
+var (
+	_ hierr.HierarchicalError = (*Error)(nil)
+)
+
 // Error is smart and flexible string representation of occurred error, can be
 // printed as plain one-line string or as hierarchical multi-leveled error.
 type Error struct {
@@ -32,4 +36,23 @@ func (err Error) Error() string {
 // sending occurred slave errors to user as part of http response.
 func (err Error) HierarchicalError() string {
 	return hierr.Errorf(err.Nested, err.Message).Error()
+}
+
+// GetNested returns slice of nested errors.
+func (err *Error) GetNested() []hierr.NestedError {
+	if sliced, ok := err.Nested.([]interface{}); ok {
+		nesteds := []hierr.NestedError{}
+		for _, nested := range sliced {
+			nesteds = append(nesteds, nested)
+		}
+
+		return nesteds
+	}
+
+	return []hierr.NestedError{err.Nested}
+}
+
+// GetMessage returns top-level error message.
+func (err Error) GetMessage() string {
+	return err.Message
 }
