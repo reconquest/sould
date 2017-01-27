@@ -70,7 +70,7 @@ package() {
 		install -DT "$filename" "$pkgdir/usr/bin/$(basename $filename)"
 	done
 
-	install -DT -m0755 "$srcdir/sould/sould.conf.default" "$pkgdir/etc/sould.conf"
+	install -DT -m0755 "$srcdir/sould/conf/sould.conf" "$pkgdir/etc/sould.conf"
 	install -DT -m0755 "$srcdir/sould/systemd/sould.service" "$pkgdir/usr/lib/systemd/system/sould.service"
 	install -DT -m0755 "$srcdir/sould/systemd/sould-gitd.service" "$pkgdir/usr/lib/systemd/system/sould-gitd.service"
 	install -DT -m0755 "$srcdir/sould/iptables/sould-gitd.rules" "$pkgdir/etc/iptables/sould-gitd.rules"
