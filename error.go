@@ -39,7 +39,7 @@ func (err Error) HierarchicalError() string {
 }
 
 // GetNested returns slice of nested errors.
-func (err *Error) GetNested() []hierr.NestedError {
+func (err Error) GetNested() []hierr.NestedError {
 	if sliced, ok := err.Nested.([]interface{}); ok {
 		nesteds := []hierr.NestedError{}
 		for _, nested := range sliced {
