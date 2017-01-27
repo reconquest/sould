@@ -6,6 +6,10 @@ import (
 	"github.com/reconquest/hierr-go"
 )
 
+var (
+	_ hierr.HierarchicalError = (*ServerResponse)(nil)
+)
+
 // ServersResponses is a set of slave responses, usable for batching.
 type ServersResponses []*ServerResponse
 
@@ -142,4 +146,12 @@ func (response ServerResponse) HierarchicalError() string {
 // IsSuccess returns true if given response looks like a succeed request.
 func (response ServerResponse) IsSuccess() bool {
 	return response.HeaderXSuccess == "true"
+}
+
+func (response ServerResponse) GetMessage() string {
+	return ""
+}
+
+func (response ServerResponse) GetNested() []hierr.NestedError {
+	return nil
 }
